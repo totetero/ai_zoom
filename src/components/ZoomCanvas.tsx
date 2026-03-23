@@ -197,19 +197,32 @@ function SceneManager({ frames, images, progress, width, height }: ZoomCanvasPro
       v0_3 = applyH(u_3);
     }
     
-    // カメラコーナーの補間（指数イージングで自然なズーム感を演出）
-    const ease = (t: number) => (Math.exp(t * 7) - 1) / (Math.exp(7) - 1);
-    const t = ease(1 - p); // p=1(引き)の時 t=0, p=0(寄り)の時 t=1
+    // --- 【最適化されたイージング計算（数学的に均一な一定速度ズーム）】 ---
+    // Outerビュー(v1) と Innerビュー(v0) の幅の比率(r)を計算し、指数関数を用いて補間することで、
+    // まったく一定のスピードでズームイン/アウトしているように見せます。
+    const dx_out = v1_1.x - v1_0.x;
+    const dy_out = v1_1.y - v1_0.y;
+    const w_outer = Math.sqrt(dx_out * dx_out + dy_out * dy_out);
+    
+    const dx_in = v0_1.x - v0_0.x;
+    const dy_in = v0_1.y - v0_0.y;
+    const w_inner = Math.sqrt(dx_in * dx_in + dy_in * dy_in);
+
+    const r = w_outer / w_inner;
+    
+    // p=0 のとき f=0 (Inner画像ビュー)
+    // p=1 のとき f=1 (Outer画像ビュー)
+    const f = r === 1 ? p : (Math.pow(r, p) - 1) / (r - 1);
     
     const lerp = (a: {x:number,y:number}, b: {x:number,y:number}, t: number) => ({
       x: a.x + (b.x - a.x) * t,
       y: a.y + (b.y - a.y) * t
     });
     
-    const curr_0 = lerp(v1_0, v0_0, t);
-    const curr_1 = lerp(v1_1, v0_1, t);
-    const curr_2 = lerp(v1_2, v0_2, t);
-    const curr_3 = lerp(v1_3, v0_3, t);
+    const curr_0 = lerp(v0_0, v1_0, f);
+    const curr_1 = lerp(v0_1, v1_1, f);
+    const curr_2 = lerp(v0_2, v1_2, f);
+    const curr_3 = lerp(v0_3, v1_3, f);
     
     // 画面(Viewport)の4隅
     const screen_src = [
