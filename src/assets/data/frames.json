@@ -1,0 +1,38 @@
+[
+  {
+    "id": 0,
+    "filename": "0_birth.jpg",
+    "year": 2020,
+    "age": 0,
+    "message": "誕生",
+    "frameRect": null 
+  },
+  {
+    "id": 1,
+    "filename": "1_year.jpg",
+    "year": 2021,
+    "age": 1,
+    "message": "1歳の誕生日",
+    "frameRect": {
+      "x": 300,
+      "y": 450,
+      "width": 150,
+      "height": 200,
+      "rotation": -0.05
+    }
+  },
+  {
+    "id": 2,
+    "filename": "2_years.jpg",
+    "year": 2022,
+    "age": 2,
+    "message": "2歳の誕生日",
+    "frameRect": {
+      "x": 350,
+      "y": 400,
+      "width": 160,
+      "height": 210,
+      "rotation": 0.02
+    }
+  }
+]
