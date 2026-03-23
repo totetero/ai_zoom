@@ -66,11 +66,9 @@ export const ZoomCanvas: React.FC<ZoomCanvasProps> = ({ frames, images, progress
     const outerTop = -outerH / 2;
 
     // frameRect はOuter画像(元寸法)上での位置として定義されているとする
-    // ここから、描画座標系(Outer画像の中心を0,0とした系)での、額縁の中心とスケールを求める
-    // jsonのframeRectがどの座標系か不明だが、おそらく「1024x768 を基準とした相対座標」のはず。
-    // 元プロトタイプでの仮定: 1024x768 基準
-    const jsonBaseW = 1024;
-    const jsonBaseH = 768;
+    // jsonのframeRectはオリジナルの画像解像度（4000x3000など）として保存される仕様に変更
+    const jsonBaseW = outerImg.width;
+    const jsonBaseH = outerImg.height;
 
     // Outer画像の描画サイズ(outerW, outerH) に対する frameRect の比率計算
     const frameX = (frameRect.x / jsonBaseW) * outerW;
@@ -80,8 +78,9 @@ export const ZoomCanvas: React.FC<ZoomCanvasProps> = ({ frames, images, progress
     const frameRot = frameRect.rotation * (Math.PI / 180);
 
     // 額縁の中心座標（Outer画像中心を原点としたローカル座標）
-    const targetCX = outerLeft + frameX + frameW / 2;
-    const targetCY = outerTop + frameY + frameH / 2;
+    // frameX, frameY は P0(左上) の座標。中心はそこから回転を考慮して幅・高さの半分移動した位置。
+    const targetCX = outerLeft + frameX + (frameW / 2) * Math.cos(frameRot) - (frameH / 2) * Math.sin(frameRot);
+    const targetCY = outerTop + frameY + (frameW / 2) * Math.sin(frameRot) + (frameH / 2) * Math.cos(frameRot);
 
     // Inner画像を額縁に収めるためのローカルスケール
     // Inner画像を額縁の枠いっぱいに(coverするように)広げる

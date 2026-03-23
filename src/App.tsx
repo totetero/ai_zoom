@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ZoomCanvas } from './components/ZoomCanvas';
+import { FrameEditor } from './tools/FrameEditor';
 import { usePreloadImages } from './hooks/usePreloadImages';
 import type { FrameData } from './hooks/usePreloadImages';
 import framesData from './assets/data/frames.json';
@@ -9,6 +10,7 @@ function App() {
   const [frames] = useState<FrameData[]>(framesData as FrameData[]);
   const { images, isReady, progress: loadProgress } = usePreloadImages(frames, '/img/');
   const [progress, setProgress] = useState(0);
+  const [showEditor, setShowEditor] = useState(false);
 
   // マウスホイールでのスクロール操作
   useEffect(() => {
@@ -45,6 +47,13 @@ function App() {
         <h1 className="year-title">{currentYear}</h1>
         <p className="message">{currentMessage}</p>
         
+        <button 
+          onClick={() => setShowEditor(true)} 
+          style={{ pointerEvents: 'auto', position: 'absolute', top: 20, right: 20, zIndex: 1000, background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '8px 16px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Open Frame Editor
+        </button>
+
         <div className="controls">
           <input 
             type="range" 
@@ -60,6 +69,8 @@ function App() {
           </div>
         </div>
       </div>
+      
+      {showEditor && <FrameEditor frames={frames} images={images} onClose={() => setShowEditor(false)} />}
     </div>
   );
 }

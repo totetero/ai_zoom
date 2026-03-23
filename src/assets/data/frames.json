@@ -5,7 +5,7 @@
     "year": 2021,
     "age": 0,
     "message": "誕生",
-    "frameRect": null 
+    "frameRect": null
   },
   {
     "id": 1,
@@ -14,11 +14,11 @@
     "age": 0,
     "message": "生後4ヶ月",
     "frameRect": {
-      "x": 300,
-      "y": 400,
-      "width": 200,
-      "height": 260,
-      "rotation": -2
+      "x": 2399.6417910447763,
+      "y": 427.55774006622516,
+      "width": 1338,
+      "height": 1939,
+      "rotation": 29.6
     }
   },
   {
@@ -28,11 +28,11 @@
     "age": 1,
     "message": "1歳の誕生日",
     "frameRect": {
-      "x": 350,
-      "y": 420,
-      "width": 220,
-      "height": 290,
-      "rotation": 1
+      "x": 4004.417910447761,
+      "y": 457.5974751655629,
+      "width": 2243,
+      "height": 1525,
+      "rotation": 89.87
     }
   },
   {
@@ -42,11 +42,11 @@
     "age": 2,
     "message": "2歳の誕生日",
     "frameRect": {
-      "x": 320,
-      "y": 410,
-      "width": 190,
-      "height": 250,
-      "rotation": -1
+      "x": 180.93994778067886,
+      "y": 2237.9807692307695,
+      "width": 2494,
+      "height": 1495,
+      "rotation": -0.29
     }
   },
   {
@@ -56,11 +56,11 @@
     "age": 3,
     "message": "3歳の誕生日",
     "frameRect": {
-      "x": 310,
-      "y": 390,
-      "width": 210,
-      "height": 280,
-      "rotation": 0
+      "x": 61.879895561357706,
+      "y": 686.960361067504,
+      "width": 1485,
+      "height": 3071,
+      "rotation": 0.73
     }
   },
   {
@@ -70,11 +70,11 @@
     "age": 4,
     "message": "4歳の誕生日",
     "frameRect": {
-      "x": 340,
-      "y": 430,
-      "width": 200,
-      "height": 270,
-      "rotation": 2
+      "x": 83.81201044386424,
+      "y": 1402.815934065934,
+      "width": 1862,
+      "height": 2516,
+      "rotation": -1.74
     }
   }
 ]
