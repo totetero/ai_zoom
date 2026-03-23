@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrthographicCamera } from '@react-three/drei';
 import type { FrameData } from '../hooks/usePreloadImages';
 
@@ -8,8 +8,6 @@ interface ZoomCanvasProps {
   frames: FrameData[];
   images: HTMLImageElement[];
   progress: number; // 0.0 ~ (frames.length - 1)
-  width: number;
-  height: number;
 }
 
 // 4点の対応から射影変換(ホモグラフィ)行列を求める関数
@@ -126,7 +124,11 @@ function ImageMesh({ img, points, isOuter, zIndex }: { img: HTMLImageElement, po
 }
 
 // ズームを管理するシーンマネージャー
-function SceneManager({ frames, images, progress, width, height }: ZoomCanvasProps) {
+function SceneManager({ frames, images, progress }: ZoomCanvasProps) {
+  const { size } = useThree();
+  const width = size.width;
+  const height = size.height;
+  
   const cameraRef = useRef<THREE.OrthographicCamera>(null);
   const groupRef = useRef<THREE.Group>(null);
   
@@ -261,7 +263,7 @@ function SceneManager({ frames, images, progress, width, height }: ZoomCanvasPro
 export const ZoomCanvas: React.FC<ZoomCanvasProps> = (props) => {
   if (props.images.length === 0) return null;
   return (
-    <div style={{ width: props.width, height: props.height, maxWidth: '100vw', maxHeight: '100vh', margin: '0 auto', overflow: 'hidden' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0, overflow: 'hidden' }}>
       <Canvas style={{ background: '#000' }} gl={{ antialias: true }}>
         <SceneManager {...props} />
       </Canvas>

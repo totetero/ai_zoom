@@ -39,8 +39,6 @@ function App() {
         frames={frames} 
         images={images} 
         progress={progress} 
-        width={1024} 
-        height={768} 
       />
       
       <div className="overlay">
