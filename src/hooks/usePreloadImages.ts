@@ -6,13 +6,14 @@ export type FrameData = {
   year: number;
   age: number;
   message: string;
-  frameRect: {
+  frameRect?: {
     x: number;
     y: number;
     width: number;
     height: number;
     rotation: number;
-  } | null;
+  };
+  points?: { x: number; y: number }[] | null;
 };
 
 export function usePreloadImages(

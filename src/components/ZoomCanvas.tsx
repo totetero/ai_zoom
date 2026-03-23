@@ -32,13 +32,13 @@ export const ZoomCanvas: React.FC<ZoomCanvasProps> = ({ frames, images, progress
 
     const outerImg = images[idx + 1];
     const innerImg = images[idx];
-    const frameRect = frames[idx + 1]?.frameRect;
+    const framePoints = frames[idx + 1]?.points;
 
     ctx.clearRect(0, 0, width, height);
     ctx.save();
 
     // エラーフォールバック
-    if (!frameRect || !outerImg || !innerImg) {
+    if (!framePoints || framePoints.length !== 4 || !outerImg || !innerImg) {
       if (innerImg) ctx.drawImage(innerImg, 0, 0, width, height);
       ctx.restore();
       return;
@@ -48,94 +48,110 @@ export const ZoomCanvas: React.FC<ZoomCanvasProps> = ({ frames, images, progress
     const screenCX = width / 2;
     const screenCY = height / 2;
 
-    // 「画像を画面（ウィンドウ）に全体が収まるように(contain)描画するレイアウトスケール」
-    // Outer・Innerそれぞれが全画面化された時にこのスケールがベースになる。
-    // ※今回は画面サイズに合わせてCover（黒帯なし）にするかContain（黒帯あり）にするか。
-    // 背景が黒なので Contain の方が全てが見えて安全。
     const getContainScale = (img: HTMLImageElement) => {
       return Math.min(width / img.width, height / img.height);
     };
 
     const outerBaseScale = getContainScale(outerImg);
-    
-    // Outer画像の空間における座標系（左上が原点）
-    // Outer画像を画面中央に置いた場合、左上の座標はどこになるか
     const outerW = outerImg.width * outerBaseScale;
     const outerH = outerImg.height * outerBaseScale;
     const outerLeft = -outerW / 2;
     const outerTop = -outerH / 2;
 
-    // frameRect はOuter画像(元寸法)上での位置として定義されているとする
-    // jsonのframeRectはオリジナルの画像解像度（4000x3000など）として保存される仕様に変更
+    // jsonBase はオリジナルの画像サイズ
     const jsonBaseW = outerImg.width;
     const jsonBaseH = outerImg.height;
 
-    // Outer画像の描画サイズ(outerW, outerH) に対する frameRect の比率計算
-    const frameX = (frameRect.x / jsonBaseW) * outerW;
-    const frameY = (frameRect.y / jsonBaseH) * outerH;
-    const frameW = (frameRect.width / jsonBaseW) * outerW;
-    const frameH = (frameRect.height / jsonBaseH) * outerH;
-    const frameRot = frameRect.rotation * (Math.PI / 180);
+    // pointsをOuter画像の画面上描画サイズ座標系にマッピング
+    const scaleX = outerW / jsonBaseW;
+    const scaleY = outerH / jsonBaseH;
+    const p0 = { x: outerLeft + framePoints[0].x * scaleX, y: outerTop + framePoints[0].y * scaleY };
+    const p1 = { x: outerLeft + framePoints[1].x * scaleX, y: outerTop + framePoints[1].y * scaleY };
+    const p3 = { x: outerLeft + framePoints[3].x * scaleX, y: outerTop + framePoints[3].y * scaleY };
 
-    // 額縁の中心座標（Outer画像中心を原点としたローカル座標）
-    // frameX, frameY は P0(左上) の座標。中心はそこから回転を考慮して幅・高さの半分移動した位置。
-    const targetCX = outerLeft + frameX + (frameW / 2) * Math.cos(frameRot) - (frameH / 2) * Math.sin(frameRot);
-    const targetCY = outerTop + frameY + (frameW / 2) * Math.sin(frameRot) + (frameH / 2) * Math.cos(frameRot);
+    // --- Inner画像の変形パラメータ計算 ---
+    // p0 (左上), p1 (右上), p3 (左下) からアフィン変換を取り出す
+    const dxX = p1.x - p0.x;
+    const dyX = p1.y - p0.y;
+    const dxY = p3.x - p0.x;
+    const dyY = p3.y - p0.y;
 
-    // Inner画像を額縁に収めるためのローカルスケール
-    // Inner画像を額縁の枠いっぱいに(coverするように)広げる
-    const innerScaleX = frameW / innerImg.width;
-    const innerScaleY = frameH / innerImg.height;
-    const innerScale = Math.max(innerScaleX, innerScaleY);
+    // 回転角(X軸の傾き)
+    const rot = Math.atan2(dyX, dxX);
+    // スケールX (Inner画像の横幅に対する描画幅)
+    const lenX = Math.sqrt(dxX * dxX + dyX * dyX);
+    const innerScaleX = lenX / innerImg.width;
 
-    // 【カメラのトランスフォーム計算】
-    // p=1 のとき:
-    // Outer画像が画面中央に、OuterBaseScaleでそのまま見える状態。（つまりローカルの世界で scale=1, rot=0, trans=0）
+    // Y軸ベクトルの逆回転(X軸を水平に戻した状態でのY軸ベクトル)
+    const lx = dxY * Math.cos(-rot) - dyY * Math.sin(-rot);
+    const ly = dxY * Math.sin(-rot) + dyY * Math.cos(-rot);
+
+    // スケールY と シアーX (傾き)
+    // Canvasの Y方向の基底ベクトル (0, lenY) が (lx, ly)にマッピングされる
+    const innerScaleY = ly / innerImg.height;
+    const innerSkewX = lx / ly; // tan(phi)
+
+    // Innerの中心座標 (Outer空間)
+    const innerCX = innerImg.width / 2;
+    const innerCY = innerImg.height / 2;
+    const localCX = innerCX * innerScaleX + innerCY * innerScaleY * innerSkewX;
+    const localCY = innerCY * innerScaleY;
+    const targetCX = p0.x + localCX * Math.cos(rot) - localCY * Math.sin(rot);
+    const targetCY = p0.y + localCX * Math.sin(rot) + localCY * Math.cos(rot);
+
+    // --- カメラのパラメータ計算 ---
+    const innerBaseScale = getContainScale(innerImg);
+
+    // p=1 (Outer画像が全体表示) のときのカメラ
     const camTransX1 = 0;
     const camTransY1 = 0;
-    const camScale1 = 1;
     const camRot1 = 0;
+    const camScaleX1 = 1;
+    const camScaleY1 = 1;
+    const camSkewX1 = 0;
 
-    // p=0 のとき:
-    // Inner画像が画面中央に、InnerのためのBaseScale（getContainScale(innerImg)）で見える状態。
-    // まず、カメラが targetCX, targetCY に移動し、frameRot 分だけ回転を相殺する。
-    // その上で、Inner画像が画面いっぱいに広がるように全体を拡大する。
-    const innerBaseScale = getContainScale(innerImg);
-    // 必要な世界全体の拡大率 = (Inner自身が画面に収まるスケール) / (Innerが額縁に収まるローカルスケール)
-    const camScale0 = innerBaseScale / innerScale;
-    // カメラは額縁の中心を覗き込む
+    // p=0 (Inner画像が画面に歪みなく全体表示) のときのカメラ
+    // Outerの世界を逆変形してInnerを正面・非シアー状態にする
     const camTransX0 = targetCX;
     const camTransY0 = targetCY;
-    // カメラの回転は額縁の回転を相殺する
-    const camRot0 = frameRot;
+    const camRot0 = rot;
+    const camScaleX0 = innerBaseScale / innerScaleX;
+    const camScaleY0 = innerBaseScale / innerScaleY;
+    const camSkewX0 = innerSkewX;
 
-    // 補間 (指数スケールを使うとズームが自然になる)
-    const currentScale = Math.exp((1 - p) * Math.log(camScale0) + p * Math.log(camScale1));
+    // パラメータの補間
+    // スケールは指数補間を用いて自然なズームを実現
+    const currentScaleX = Math.exp((1 - p) * Math.log(camScaleX0) + p * Math.log(camScaleX1));
+    const currentScaleY = Math.exp((1 - p) * Math.log(camScaleY0) + p * Math.log(camScaleY1));
     const currentRot = (1 - p) * camRot0 + p * camRot1;
-    const currentCamX = (1 - p) * camTransX0 + p * camTransX1;
-    const currentCamY = (1 - p) * camTransY0 + p * camTransY1;
+    const currentTransX = (1 - p) * camTransX0 + p * camTransX1;
+    const currentTransY = (1 - p) * camTransY0 + p * camTransY1;
+    const currentSkewX = (1 - p) * camSkewX0 + p * camSkewX1;
 
     // --- 【描画】 ---
-    ctx.translate(screenCX, screenCY); // 画面中央を原点に
+    ctx.translate(screenCX, screenCY); // 画面中央を原点
 
-    // カメラの変換（カメラが x, y に移動して scale, rot する = 世界をその逆へ動かす）
-    ctx.scale(currentScale, currentScale);
+    // カメラスペースへの変換 (逆変換を適用)
+    ctx.scale(currentScaleX, currentScaleY);
+    ctx.transform(1, 0, -currentSkewX, 1, 0, 0); // スキューの逆
     ctx.rotate(-currentRot);
-    ctx.translate(-currentCamX, -currentCamY);
+    ctx.translate(-currentTransX, -currentTransY);
 
-    // 世界の原点(0,0) は Outer画像の中心。
-    // Outer画像の描画（アスペクト比を維持したそのままの画像）
+    // Outer画像の描画
     ctx.drawImage(outerImg, -outerW / 2, -outerH / 2, outerW, outerH);
 
-    // Inner画像の描画（額縁の位置へ）
+    // Inner画像の描画（アフィン変換で矩形を歪ませてパースに合わせて描画）
     ctx.save();
-    ctx.translate(targetCX, targetCY);
-    ctx.rotate(frameRot);
-    
-    // Inner画像をそのままの比率で描く（中心合わせ）
-    const drawInnerW = innerImg.width * innerScale;
-    const drawInnerH = innerImg.height * innerScale;
-    ctx.drawImage(innerImg, -drawInnerW / 2, -drawInnerH / 2, drawInnerW, drawInnerH);
+    const W = innerImg.width;
+    const H = innerImg.height;
+    const a = (p1.x - p0.x) / W;
+    const b = (p1.y - p0.y) / W;
+    const c = (p3.x - p0.x) / H;
+    const d = (p3.y - p0.y) / H;
+    const e = p0.x;
+    const f = p0.y;
+    ctx.transform(a, b, c, d, e, f);
+    ctx.drawImage(innerImg, 0, 0, W, H);
     ctx.restore();
 
     ctx.restore();

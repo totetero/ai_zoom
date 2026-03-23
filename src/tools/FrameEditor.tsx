@@ -81,22 +81,8 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
   };
 
   const calculateRect = (pts: Point[]) => {
-    // 0: top-left, 1: top-right, 2: bottom-right, 3: bottom-left (想定)
-    const w = Math.sqrt(Math.pow(pts[1].x - pts[0].x, 2) + Math.pow(pts[1].y - pts[0].y, 2));
-    const h = Math.sqrt(Math.pow(pts[3].x - pts[0].x, 2) + Math.pow(pts[3].y - pts[0].y, 2));
-    const rotRad = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
-    const rotDeg = rotRad * (180 / Math.PI);
-
-    const newFrameRect = {
-      x: pts[0].x,
-      y: pts[0].y,
-      width: Math.round(w),
-      height: Math.round(h),
-      rotation: Math.round(rotDeg * 100) / 100 // 小数点第2位まで
-    };
-
     const newData = [...allData];
-    newData[currentIndex] = { ...newData[currentIndex], frameRect: newFrameRect };
+    newData[currentIndex] = { ...newData[currentIndex], points: pts };
     setAllData(newData);
     setGeneratedHtml(JSON.stringify(newData, null, 2));
   };
