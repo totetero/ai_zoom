@@ -1,4 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
+import * as THREE from 'three';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrthographicCamera } from '@react-three/drei';
 import type { FrameData } from '../hooks/usePreloadImages';
 
 interface ZoomCanvasProps {
@@ -9,153 +12,246 @@ interface ZoomCanvasProps {
   height: number;
 }
 
-export const ZoomCanvas: React.FC<ZoomCanvasProps> = ({ frames, images, progress, width, height }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+// 4点の対応から射影変換(ホモグラフィ)行列を求める関数
+function getHomographyMatrix4(src: {x: number, y: number}[], dst: {x: number, y: number}[]) {
+  const A = [];
+  for (let i = 0; i < 4; i++) {
+    const x = src[i].x, y = src[i].y;
+    const u = dst[i].x, v = dst[i].y;
+    A.push([-x, -y, -1, 0, 0, 0, u * x, u * y, u]);
+    A.push([0, 0, 0, -x, -y, -1, v * x, v * y, v]);
+  }
+  
+  const M = A.map(row => row.slice(0, 8));
+  const B = A.map(row => -row[8]);
+  
+  // ガウス消去法による連立方程式の解法
+  for (let i = 0; i < 8; i++) {
+    let maxRow = i;
+    for (let j = i + 1; j < 8; j++) {
+      if (Math.abs(M[j][i]) > Math.abs(M[maxRow][i])) maxRow = j;
+    }
+    const tmp = M[i]; M[i] = M[maxRow]; M[maxRow] = tmp;
+    const tmpB = B[i]; B[i] = B[maxRow]; B[maxRow] = tmpB;
+    
+    for (let j = i + 1; j < 8; j++) {
+      const c = M[j][i] / M[i][i];
+      for (let k = i; k < 8; k++) M[j][k] -= c * M[i][k];
+      B[j] -= c * B[i];
+    }
+  }
+  const h = new Array(8);
+  for (let i = 7; i >= 0; i--) {
+    let sum = 0;
+    for (let j = i + 1; j < 8; j++) sum += M[i][j] * h[j];
+    h[i] = (B[i] - sum) / M[i][i];
+  }
+
+  const m = new THREE.Matrix4();
+  m.set(
+    h[0], h[1], 0, h[2],
+    h[3], h[4], 0, h[5],
+    0,    0,    1, 0,
+    h[6], h[7], 0, 1
+  );
+  return m;
+}
+
+// テクスチャのキャッシュ（Reactコンポーネントの再描画によるチラつき防止）
+const textureCache = new Map<HTMLImageElement, THREE.Texture>();
+function getTexture(img: HTMLImageElement) {
+  if (!textureCache.has(img)) {
+    const tex = new THREE.Texture(img);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.needsUpdate = true;
+    textureCache.set(img, tex);
+  }
+  return textureCache.get(img)!;
+}
+
+// 画像を矩形・または指定の4点に変形して描画するメッシュ
+function ImageMesh({ img, points, isOuter, zIndex }: { img: HTMLImageElement, points?: {x:number, y:number}[] | null, isOuter: boolean, zIndex: number }) {
+  const tex = useMemo(() => getTexture(img), [img]);
+  const W = img.width;
+  const H = img.height;
+  
+  const meshRef = useRef<THREE.Mesh>(null);
+  
+  // [0, W] x [0, H] の平面ジオメトリ。UVはDOMの左上原点に合わせる
+  const geom = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const vertices = new Float32Array([
+      0, 0, 0,
+      W, 0, 0,
+      0, H, 0,
+      W, H, 0,
+    ]);
+    const indices = [0, 2, 1, 1, 2, 3];
+    const uvs = new Float32Array([
+      0, 1,
+      1, 1,
+      0, 0,
+      1, 0,
+    ]);
+    geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    return geo;
+  }, [W, H]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || images.length === 0) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let idx = Math.floor(progress);
-    let p = progress - idx; // 0.0 ~ 1.0
-
-    if (idx >= frames.length - 1) {
-      idx = frames.length - 2;
-      p = 1.0;
+    if (!meshRef.current) return;
+    if (points && points.length === 4 && !isOuter) {
+      const src = [
+        {x: 0, y: 0},
+        {x: W, y: 0},
+        {x: W, y: H},
+        {x: 0, y: H}
+      ];
+      // Note: points are in Top-Left, Top-Right, Bottom-Right, Bottom-Left
+      const m = getHomographyMatrix4(src, points);
+      meshRef.current.matrixAutoUpdate = false;
+      meshRef.current.matrix.copy(m);
+    } else {
+      meshRef.current.matrixAutoUpdate = false;
+      meshRef.current.matrix.identity();
     }
-    if (idx < 0) {
-      idx = 0;
-      p = 0.0;
+  }, [points, isOuter, W, H]);
+
+  return (
+    <mesh ref={meshRef} geometry={geom} position={[0,0,zIndex]}>
+      <meshBasicMaterial map={tex} transparent depthTest={false} />
+    </mesh>
+  );
+}
+
+// ズームを管理するシーンマネージャー
+function SceneManager({ frames, images, progress, width, height }: ZoomCanvasProps) {
+  const cameraRef = useRef<THREE.OrthographicCamera>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  
+  let idx = Math.floor(progress);
+  let p = progress - idx;
+
+  if (idx >= frames.length - 1) {
+    idx = frames.length - 2;
+    p = 1.0;
+  }
+  if (idx < 0) {
+    idx = 0;
+    p = 0.0;
+  }
+
+  const outerImg = images[idx + 1] || images[0];
+  const innerImg = images[idx] || images[0];
+  const framePoints = frames[idx + 1]?.points;
+  
+  useFrame(() => {
+    if (!cameraRef.current || !groupRef.current) return;
+    
+    const outerW = outerImg.width;
+    const outerH = outerImg.height;
+    
+    // 【p=1 (引き) でのカメラビュー (Outer空間)】
+    const scaleOut = Math.min(width / outerW, height / outerH);
+    const viewW_out = width / scaleOut;
+    const viewH_out = height / scaleOut;
+    const cx_out = outerW / 2;
+    const cy_out = outerH / 2;
+    const v1_0 = { x: cx_out - viewW_out/2, y: cy_out - viewH_out/2 };
+    const v1_1 = { x: cx_out + viewW_out/2, y: cy_out - viewH_out/2 };
+    const v1_2 = { x: cx_out + viewW_out/2, y: cy_out + viewH_out/2 };
+    const v1_3 = { x: cx_out - viewW_out/2, y: cy_out + viewH_out/2 };
+    
+    // 【p=0 (寄り) でのカメラビュー (Outer空間におけるInner画像の位置)】
+    const innerW = innerImg.width;
+    const innerH = innerImg.height;
+    const scaleIn = Math.min(width / innerW, height / innerH);
+    const viewW_in = width / scaleIn;
+    const viewH_in = height / scaleIn;
+    const cx_in = innerW / 2;
+    const cy_in = innerH / 2;
+    // Inner画像ローカル座標でのカメラビュー
+    const u_0 = { x: cx_in - viewW_in/2, y: cy_in - viewH_in/2 };
+    const u_1 = { x: cx_in + viewW_in/2, y: cy_in - viewH_in/2 };
+    const u_2 = { x: cx_in + viewW_in/2, y: cy_in + viewH_in/2 };
+    const u_3 = { x: cx_in - viewW_in/2, y: cy_in + viewH_in/2 };
+    
+    let v0_0 = u_0, v0_1 = u_1, v0_2 = u_2, v0_3 = u_3;
+    
+    if (framePoints && framePoints.length === 4) {
+      const src = [
+        {x: 0, y: 0},
+        {x: innerW, y: 0},
+        {x: innerW, y: innerH},
+        {x: 0, y: innerH}
+      ];
+      const h_mat = getHomographyMatrix4(src, framePoints);
+      const applyH = (pt: {x:number, y:number}) => {
+        const vec = new THREE.Vector3(pt.x, pt.y, 0).applyMatrix4(h_mat);
+        return { x: vec.x, y: vec.y };
+      };
+      v0_0 = applyH(u_0);
+      v0_1 = applyH(u_1);
+      v0_2 = applyH(u_2);
+      v0_3 = applyH(u_3);
     }
+    
+    // カメラコーナーの補間（指数イージングで自然なズーム感を演出）
+    const ease = (t: number) => (Math.exp(t * 7) - 1) / (Math.exp(7) - 1);
+    const t = ease(1 - p); // p=1(引き)の時 t=0, p=0(寄り)の時 t=1
+    
+    const lerp = (a: {x:number,y:number}, b: {x:number,y:number}, t: number) => ({
+      x: a.x + (b.x - a.x) * t,
+      y: a.y + (b.y - a.y) * t
+    });
+    
+    const curr_0 = lerp(v1_0, v0_0, t);
+    const curr_1 = lerp(v1_1, v0_1, t);
+    const curr_2 = lerp(v1_2, v0_2, t);
+    const curr_3 = lerp(v1_3, v0_3, t);
+    
+    // 画面(Viewport)の4隅
+    const screen_src = [
+      {x: 0, y: 0},
+      {x: width, y: 0},
+      {x: width, y: height},
+      {x: 0, y: height}
+    ];
+    const curr_dst = [curr_0, curr_1, curr_2, curr_3];
+    
+    // 現在のカメラビューを画面にピッタリ写すための逆変換行列
+    const h_cam = getHomographyMatrix4(screen_src, curr_dst);
+    groupRef.current.matrixAutoUpdate = false;
+    groupRef.current.matrix.copy(h_cam).invert();
+  });
 
-    const outerImg = images[idx + 1];
-    const innerImg = images[idx];
-    const framePoints = frames[idx + 1]?.points;
+  return (
+    <>
+      <OrthographicCamera 
+        ref={cameraRef} 
+        makeDefault 
+        left={0} right={width} 
+        top={0} bottom={height} 
+        near={-100} far={100} 
+      />
+      <group ref={groupRef}>
+        <ImageMesh img={outerImg} isOuter={true} zIndex={-2} />
+        {framePoints && framePoints.length === 4 && (
+          <ImageMesh img={innerImg} points={framePoints} isOuter={false} zIndex={-1} />
+        )}
+      </group>
+    </>
+  );
+}
 
-    ctx.clearRect(0, 0, width, height);
-    ctx.save();
-
-    // エラーフォールバック
-    if (!framePoints || framePoints.length !== 4 || !outerImg || !innerImg) {
-      if (innerImg) ctx.drawImage(innerImg, 0, 0, width, height);
-      ctx.restore();
-      return;
-    }
-
-    // 画面中心
-    const screenCX = width / 2;
-    const screenCY = height / 2;
-
-    const getContainScale = (img: HTMLImageElement) => {
-      return Math.min(width / img.width, height / img.height);
-    };
-
-    const outerBaseScale = getContainScale(outerImg);
-    const outerW = outerImg.width * outerBaseScale;
-    const outerH = outerImg.height * outerBaseScale;
-    const outerLeft = -outerW / 2;
-    const outerTop = -outerH / 2;
-
-    // jsonBase はオリジナルの画像サイズ
-    const jsonBaseW = outerImg.width;
-    const jsonBaseH = outerImg.height;
-
-    // pointsをOuter画像の画面上描画サイズ座標系にマッピング
-    const scaleX = outerW / jsonBaseW;
-    const scaleY = outerH / jsonBaseH;
-    const p0 = { x: outerLeft + framePoints[0].x * scaleX, y: outerTop + framePoints[0].y * scaleY };
-    const p1 = { x: outerLeft + framePoints[1].x * scaleX, y: outerTop + framePoints[1].y * scaleY };
-    const p3 = { x: outerLeft + framePoints[3].x * scaleX, y: outerTop + framePoints[3].y * scaleY };
-
-    // --- Inner画像の変形パラメータ計算 ---
-    // p0 (左上), p1 (右上), p3 (左下) からアフィン変換を取り出す
-    const dxX = p1.x - p0.x;
-    const dyX = p1.y - p0.y;
-    const dxY = p3.x - p0.x;
-    const dyY = p3.y - p0.y;
-
-    // 回転角(X軸の傾き)
-    const rot = Math.atan2(dyX, dxX);
-    // スケールX (Inner画像の横幅に対する描画幅)
-    const lenX = Math.sqrt(dxX * dxX + dyX * dyX);
-    const innerScaleX = lenX / innerImg.width;
-
-    // Y軸ベクトルの逆回転(X軸を水平に戻した状態でのY軸ベクトル)
-    const lx = dxY * Math.cos(-rot) - dyY * Math.sin(-rot);
-    const ly = dxY * Math.sin(-rot) + dyY * Math.cos(-rot);
-
-    // スケールY と シアーX (傾き)
-    // Canvasの Y方向の基底ベクトル (0, lenY) が (lx, ly)にマッピングされる
-    const innerScaleY = ly / innerImg.height;
-    const innerSkewX = lx / ly; // tan(phi)
-
-    // Innerの中心座標 (Outer空間)
-    const innerCX = innerImg.width / 2;
-    const innerCY = innerImg.height / 2;
-    const localCX = innerCX * innerScaleX + innerCY * innerScaleY * innerSkewX;
-    const localCY = innerCY * innerScaleY;
-    const targetCX = p0.x + localCX * Math.cos(rot) - localCY * Math.sin(rot);
-    const targetCY = p0.y + localCX * Math.sin(rot) + localCY * Math.cos(rot);
-
-    // --- カメラのパラメータ計算 ---
-    const innerBaseScale = getContainScale(innerImg);
-
-    // p=1 (Outer画像が全体表示) のときのカメラ
-    const camTransX1 = 0;
-    const camTransY1 = 0;
-    const camRot1 = 0;
-    const camScaleX1 = 1;
-    const camScaleY1 = 1;
-    const camSkewX1 = 0;
-
-    // p=0 (Inner画像が画面に歪みなく全体表示) のときのカメラ
-    // Outerの世界を逆変形してInnerを正面・非シアー状態にする
-    const camTransX0 = targetCX;
-    const camTransY0 = targetCY;
-    const camRot0 = rot;
-    const camScaleX0 = innerBaseScale / innerScaleX;
-    const camScaleY0 = innerBaseScale / innerScaleY;
-    const camSkewX0 = innerSkewX;
-
-    // パラメータの補間
-    // スケールは指数補間を用いて自然なズームを実現
-    const currentScaleX = Math.exp((1 - p) * Math.log(camScaleX0) + p * Math.log(camScaleX1));
-    const currentScaleY = Math.exp((1 - p) * Math.log(camScaleY0) + p * Math.log(camScaleY1));
-    const currentRot = (1 - p) * camRot0 + p * camRot1;
-    const currentTransX = (1 - p) * camTransX0 + p * camTransX1;
-    const currentTransY = (1 - p) * camTransY0 + p * camTransY1;
-    const currentSkewX = (1 - p) * camSkewX0 + p * camSkewX1;
-
-    // --- 【描画】 ---
-    ctx.translate(screenCX, screenCY); // 画面中央を原点
-
-    // カメラスペースへの変換 (逆変換を適用)
-    ctx.scale(currentScaleX, currentScaleY);
-    ctx.transform(1, 0, -currentSkewX, 1, 0, 0); // スキューの逆
-    ctx.rotate(-currentRot);
-    ctx.translate(-currentTransX, -currentTransY);
-
-    // Outer画像の描画
-    ctx.drawImage(outerImg, -outerW / 2, -outerH / 2, outerW, outerH);
-
-    // Inner画像の描画（アフィン変換で矩形を歪ませてパースに合わせて描画）
-    ctx.save();
-    const W = innerImg.width;
-    const H = innerImg.height;
-    const a = (p1.x - p0.x) / W;
-    const b = (p1.y - p0.y) / W;
-    const c = (p3.x - p0.x) / H;
-    const d = (p3.y - p0.y) / H;
-    const e = p0.x;
-    const f = p0.y;
-    ctx.transform(a, b, c, d, e, f);
-    ctx.drawImage(innerImg, 0, 0, W, H);
-    ctx.restore();
-
-    ctx.restore();
-  }, [frames, images, progress, width, height]);
-
-  return <canvas ref={canvasRef} width={width} height={height} style={{ display: 'block', maxWidth: '100vw', maxHeight: '100vh', margin: '0 auto' }} />;
+export const ZoomCanvas: React.FC<ZoomCanvasProps> = (props) => {
+  if (props.images.length === 0) return null;
+  return (
+    <div style={{ width: props.width, height: props.height, maxWidth: '100vw', maxHeight: '100vh', margin: '0 auto', overflow: 'hidden' }}>
+      <Canvas style={{ background: '#000' }} gl={{ antialias: true }}>
+        <SceneManager {...props} />
+      </Canvas>
+    </div>
+  );
 };
