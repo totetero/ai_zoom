@@ -44,8 +44,10 @@ function App() {
       />
       
       <div className="overlay">
-        <h1 className="year-title">{currentYear}</h1>
-        <p className="message">{currentMessage}</p>
+        <div className="text-info">
+          <h1 className="year-title">{currentYear}</h1>
+          <p className="message">{currentMessage}</p>
+        </div>
         
         <button 
           onClick={() => setShowEditor(true)} 
