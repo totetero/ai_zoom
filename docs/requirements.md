@@ -21,14 +21,14 @@
 
 ## 4. 非機能要件
 - **パフォーマンス:**
-  - 将来的な動画出力を視野に入れ、 DOM 操作ではなく HTML5 Canvas API (あるいは WebGL / React Canvasライブラリ) を用いて単一のキャンバス上で描画とアニメーションを完結させ、最適化を行う。
+  - 将来的な動画出力を視野に入れ、 DOM 操作ではなく WebGL (React Three Fiber / Three.js) を用いて単一のキャンバス上で描画とアニメーションを完結させ、透視投影（パースペクティブ）による正確な変形と最適化を行う。
   - 60fpsでの滑らかなアニメーションを目指す。
 - **レスポンシブデザイン:**
   - スマートフォン、タブレット、PCのそれぞれの画面サイズで最適に表示されること。
 - **使用技術:**
   - 言語: TypeScript
   - UIフレームワーク: React
-  - 描画・アニメーション: HTML5 Canvas API (+ requestAnimationFrame) または React Konva 等の描画ライブラリ
+  - 描画・アニメーション: WebGL (Three.js, @react-three/fiber, @react-three/drei)
   - 動画出力向け(将来構想): MediaRecorder API または Remotion 等の活用検討
   - ビルドツール: Vite
 
