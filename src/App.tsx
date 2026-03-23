@@ -7,7 +7,7 @@ import './App.css';
 
 function App() {
   const [frames] = useState<FrameData[]>(framesData as FrameData[]);
-  const { images, isReady, progress: loadProgress } = usePreloadImages(frames);
+  const { images, isReady, progress: loadProgress } = usePreloadImages(frames, '/img/');
   const [progress, setProgress] = useState(0);
 
   // マウスホイールでのスクロール操作
