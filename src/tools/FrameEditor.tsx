@@ -12,13 +12,12 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // 1. currentIndexが変更されたときに、対応するフレームのpointsをステートにセット
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    // 現在のフレームデータを取得し、必要に応じて初期化
     const currentFrame = allData[currentIndex];
-    if ((!currentFrame.points || currentFrame.points.length === 0) && images[currentIndex]) {
+    if (currentFrame && currentFrame.points && currentFrame.points.length > 0) {
+      setPoints(currentFrame.points);
+    } else if (images[currentIndex]) {
       const img = images[currentIndex];
       const defaultPoints = [
         { x: img.width * 0.25, y: img.height * 0.25 },
@@ -27,10 +26,19 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
         { x: img.width * 0.25, y: img.height * 0.75 }
       ];
       setPoints(defaultPoints);
-      updateAllData(defaultPoints, false);
-    } else if (currentFrame.points && currentFrame.points.length > 0 && points.length === 0) {
-      setPoints(currentFrame.points);
+      // allDataも初期化
+      setAllData(prev => {
+        const newData = [...prev];
+        newData[currentIndex] = { ...newData[currentIndex], points: defaultPoints };
+        return newData;
+      });
     }
+  }, [currentIndex, images]);
+
+  // 2. 描画ロジック
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
