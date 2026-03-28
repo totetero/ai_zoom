@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { FrameData } from '../hooks/usePreloadImages';
 
 interface Point { x: number; y: number; }
+const PADDING_RATIO = 0.2;
 
 export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageElement[], onClose: () => void }> = ({ frames, images, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(1);
@@ -46,37 +47,53 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
     const img = images[currentIndex];
     if (!img) return;
 
-    const maxHeight = window.innerHeight - 300;
-    const scale = Math.min(800 / img.width, maxHeight / img.height);
-    const w = img.width * scale;
-    const h = img.height * scale;
+    const padW = img.width * PADDING_RATIO;
+    const padH = img.height * PADDING_RATIO;
+    const totalW = img.width + padW * 2;
+    const totalH = img.height + padH * 2;
+
+    const maxHeight = window.innerHeight - 350;
+    const scale = Math.min(900 / totalW, maxHeight / totalH);
+    const displayW = totalW * scale;
+    const displayH = totalH * scale;
     
-    canvas.width = img.width;
-    canvas.height = img.height;
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
+    canvas.width = totalW;
+    canvas.height = totalH;
+    canvas.style.width = `${displayW}px`;
+    canvas.style.height = `${displayH}px`;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0);
+    
+    // Draw background for "outside" area
+    ctx.fillStyle = '#333';
+    ctx.fillRect(0, 0, totalW, totalH);
+
+    // Draw image
+    ctx.drawImage(img, padW, padH);
+
+    // Draw image border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = Math.max(1, 2 / scale);
+    ctx.strokeRect(padW, padH, img.width, img.height);
 
     // Draw lines
-    ctx.strokeStyle = 'cyan';
+    ctx.strokeStyle = '#00ffff';
     ctx.lineWidth = Math.max(2, 5 / scale);
     if (points.length === 4) {
       ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      for (let i = 1; i < 4; i++) ctx.lineTo(points[i].x, points[i].y);
+      ctx.moveTo(points[0].x + padW, points[0].y + padH);
+      for (let i = 1; i < 4; i++) ctx.lineTo(points[i].x + padW, points[i].y + padH);
       ctx.closePath();
       ctx.stroke();
     }
 
     // Draw handles
     points.forEach((p, i) => {
-      ctx.fillStyle = draggingIndex === i ? '#ffff00' : 'red';
+      ctx.fillStyle = draggingIndex === i ? '#ffff00' : '#ff0000';
       ctx.beginPath();
-      ctx.arc(p.x, p.y, Math.max(8, 18 / scale), 0, Math.PI * 2);
+      ctx.arc(p.x + padW, p.y + padH, Math.max(8, 18 / scale), 0, Math.PI * 2);
       ctx.fill();
-      ctx.lineWidth = 1;
+      ctx.lineWidth = Math.max(1, 2 / scale);
       ctx.strokeStyle = 'white';
       ctx.stroke();
     });
@@ -100,9 +117,14 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
+    
+    const img = images[currentIndex];
+    const padW = img ? img.width * PADDING_RATIO : 0;
+    const padH = img ? img.height * PADDING_RATIO : 0;
+
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
+      x: (e.clientX - rect.left) * scaleX - padW,
+      y: (e.clientY - rect.top) * scaleY - padH
     };
   };
 
@@ -125,20 +147,32 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Window-level events for better dragging
+  useEffect(() => {
     if (draggingIndex === null) return;
-    const pos = getCanvasMousePos(e);
-    const newPoints = [...points];
-    newPoints[draggingIndex] = pos;
-    setPoints(newPoints);
-  };
 
-  const handleMouseUp = () => {
-    if (draggingIndex !== null) {
-      updateAllData(points);
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      const pos = getCanvasMousePos(e);
+      setPoints(prev => {
+        const next = [...prev];
+        next[draggingIndex] = pos;
+        return next;
+      });
+    };
+
+    const handleWindowMouseUp = () => {
       setDraggingIndex(null);
-    }
-  };
+      updateAllData(points);
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [draggingIndex, points]); // We need points here to save the latest state on MouseUp
 
   const handleReset = () => {
     if (!images[currentIndex]) return;
@@ -178,10 +212,7 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
       <canvas 
         ref={canvasRef} 
         onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        style={{ cursor: draggingIndex !== null ? 'grabbing' : 'crosshair', border: '2px solid #555', backgroundColor: '#000', marginTop: '10px' }} 
+        style={{ cursor: draggingIndex !== null ? 'grabbing' : 'crosshair', border: '1px solid #999', backgroundColor: '#222', marginTop: '10px' }} 
       />
 
       {generatedHtml && (
