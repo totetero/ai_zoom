@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { FrameData } from '../hooks/usePreloadImages';
 
-interface Point { x: number; y: number; }
-const PADDING_RATIO = 0.2;
+import { type Point, calculateImageCoord, calculatePadding, calculateDefaultPoints } from '../utils/coords';
 
 export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageElement[], onClose: () => void }> = ({ frames, images, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(1);
@@ -20,12 +19,7 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
       setPoints(currentFrame.points);
     } else if (images[currentIndex]) {
       const img = images[currentIndex];
-      const defaultPoints = [
-        { x: img.width * 0.25, y: img.height * 0.25 },
-        { x: img.width * 0.75, y: img.height * 0.25 },
-        { x: img.width * 0.75, y: img.height * 0.75 },
-        { x: img.width * 0.25, y: img.height * 0.75 }
-      ];
+      const defaultPoints = calculateDefaultPoints(img.width, img.height);
       setPoints(defaultPoints);
       // allDataも初期化
       setAllData(prev => {
@@ -47,8 +41,7 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
     const img = images[currentIndex];
     if (!img) return;
 
-    const padW = img.width * PADDING_RATIO;
-    const padH = img.height * PADDING_RATIO;
+    const { padW, padH } = calculatePadding(img.width, img.height);
     const totalW = img.width + padW * 2;
     const totalH = img.height + padH * 2;
 
@@ -113,19 +106,21 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
 
   const getCanvasMousePos = (e: React.MouseEvent | MouseEvent) => {
     const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
     const img = images[currentIndex];
-    const padW = img ? img.width * PADDING_RATIO : 0;
-    const padH = img ? img.height * PADDING_RATIO : 0;
+    if (!canvas || !img) return { x: 0, y: 0 };
+    
+    const rect = canvas.getBoundingClientRect();
+    const { padW, padH } = calculatePadding(img.width, img.height);
 
-    return {
-      x: (e.clientX - rect.left) * scaleX - padW,
-      y: (e.clientY - rect.top) * scaleY - padH
-    };
+    return calculateImageCoord(
+      e.clientX,
+      e.clientY,
+      rect,
+      canvas.width,
+      canvas.height,
+      padW,
+      padH
+    );
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -177,12 +172,7 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
   const handleReset = () => {
     if (!images[currentIndex]) return;
     const img = images[currentIndex];
-    const defaultPoints = [
-      { x: img.width * 0.25, y: img.height * 0.25 },
-      { x: img.width * 0.75, y: img.height * 0.25 },
-      { x: img.width * 0.75, y: img.height * 0.75 },
-      { x: img.width * 0.25, y: img.height * 0.75 }
-    ];
+    const defaultPoints = calculateDefaultPoints(img.width, img.height);
     setPoints(defaultPoints);
     updateAllData(defaultPoints);
   };
