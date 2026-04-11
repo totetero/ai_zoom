@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { FrameData } from '../hooks/usePreloadImages';
 
 import { type Point, calculateImageCoord, calculatePadding, calculateDefaultPoints } from '../utils/coords';
+import { getHomographyMatrix4 } from '../utils/homography';
 
 export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageElement[], onClose: () => void }> = ({ frames, images, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(1);
@@ -9,6 +10,7 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [generatedHtml, setGeneratedHtml] = useState<string>('');
   const [allData, setAllData] = useState<FrameData[]>([...frames]);
+  const [showOverlay, setShowOverlay] = useState(true);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -188,6 +190,46 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
     }
   };
 
+  const overlayInfo = React.useMemo(() => {
+    const img = images[currentIndex];
+    const prevImg = images[currentIndex - 1] || images[0];
+    if (!img || !prevImg || !points || points.length !== 4) return null;
+
+    const { padW, padH } = calculatePadding(img.width, img.height);
+    const totalW = img.width + padW * 2;
+    const totalH = img.height + padH * 2;
+
+    const maxHeight = window.innerHeight - 350;
+    const scale = Math.min(900 / totalW, maxHeight / totalH);
+    const displayW = totalW * scale;
+    const displayH = totalH * scale;
+
+    const src = [
+      { x: 0, y: 0 },
+      { x: prevImg.width, y: 0 },
+      { x: prevImg.width, y: prevImg.height },
+      { x: 0, y: prevImg.height }
+    ];
+    const dst = points.map(p => ({
+      x: (p.x + padW) * scale,
+      y: (p.y + padH) * scale
+    }));
+    
+    try {
+      const m = getHomographyMatrix4(src, dst);
+      return {
+        matrix: `matrix3d(${m.elements.join(',')})`,
+        displayW,
+        displayH,
+        prevImg,
+        imgWidth: prevImg.width,
+        imgHeight: prevImg.height
+      };
+    } catch (e) {
+      return null;
+    }
+  }, [currentIndex, images, points]);
+
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#222', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', overflow: 'auto', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -196,14 +238,55 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
         <span style={{ color: 'white', fontWeight: 'bold' }}>Image {currentIndex} / {frames.length - 1} ({frames[currentIndex]?.filename})</span>
         <button onClick={handleNext} disabled={currentIndex >= frames.length - 1} style={{ padding: '8px 16px', cursor: 'pointer' }}>Next Image</button>
         <button onClick={handleReset} style={{ padding: '8px 16px', cursor: 'pointer' }}>Reset to Default</button>
+        <button 
+          onClick={() => setShowOverlay(!showOverlay)} 
+          style={{ 
+            padding: '8px 16px', 
+            cursor: 'pointer',
+            background: showOverlay ? '#2ecc71' : '#555',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontWeight: 'bold'
+          }}
+        >
+          {showOverlay ? 'Hide Overlay' : 'Show Overlay'}
+        </button>
       </div>
       <p style={{ margin: '5px', color: '#ccc' }}>Drag the 4 handles to adjust the magnification area.</p>
       
-      <canvas 
-        ref={canvasRef} 
-        onMouseDown={handleMouseDown}
-        style={{ cursor: draggingIndex !== null ? 'grabbing' : 'crosshair', border: '1px solid #999', backgroundColor: '#222', marginTop: '10px' }} 
-      />
+      <div style={{ position: 'relative', marginTop: '10px' }}>
+        <canvas 
+          ref={canvasRef} 
+          onMouseDown={handleMouseDown}
+          style={{ cursor: draggingIndex !== null ? 'grabbing' : 'crosshair', border: '1px solid #999', backgroundColor: '#222', display: 'block' }} 
+        />
+        {showOverlay && overlayInfo && (
+          <div style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            width: overlayInfo.displayW, 
+            height: overlayInfo.displayH, 
+            pointerEvents: 'none', 
+            overflow: 'hidden' 
+          }}>
+            <img 
+              src={overlayInfo.prevImg.src} 
+              style={{ 
+                position: 'absolute', 
+                top: 0, 
+                left: 0, 
+                width: overlayInfo.imgWidth, 
+                height: overlayInfo.imgHeight, 
+                transformOrigin: '0 0', 
+                transform: overlayInfo.matrix, 
+                opacity: 0.5 
+              }} 
+            />
+          </div>
+        )}
+      </div>
 
       {generatedHtml && (
         <div style={{ width: '80%', marginTop: '20px' }}>
