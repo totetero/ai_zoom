@@ -238,10 +238,20 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
         <span style={{ color: 'white', fontWeight: 'bold' }}>Image {currentIndex} / {frames.length - 1} ({frames[currentIndex]?.filename})</span>
         <button onClick={handleNext} disabled={currentIndex >= frames.length - 1} style={{ padding: '8px 16px', cursor: 'pointer' }}>Next Image</button>
         <button onClick={handleReset} style={{ padding: '8px 16px', cursor: 'pointer' }}>Reset to Default</button>
-        <label style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', background: '#444', padding: '5px 10px', borderRadius: '4px' }}>
-          <input type="checkbox" checked={showOverlay} onChange={e => setShowOverlay(e.target.checked)} />
-          Show Overlay (Prev Image)
-        </label>
+        <button 
+          onClick={() => setShowOverlay(!showOverlay)} 
+          style={{ 
+            padding: '8px 16px', 
+            cursor: 'pointer',
+            background: showOverlay ? '#2ecc71' : '#555',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontWeight: 'bold'
+          }}
+        >
+          {showOverlay ? 'Hide Overlay' : 'Show Overlay'}
+        </button>
       </div>
       <p style={{ margin: '5px', color: '#ccc' }}>Drag the 4 handles to adjust the magnification area.</p>
       
