@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrthographicCamera } from '@react-three/drei';
 import { getHomographyMatrix4 } from '../utils/homography';
+import { calculateFadeOpacities } from '../utils/fade';
 
 interface ZoomCanvasProps {
   frames: FrameData[];
@@ -24,7 +25,7 @@ function getTexture(img: HTMLImageElement) {
 }
 
 // 画像を矩形・または指定の4点に変形して描画するメッシュ
-function ImageMesh({ img, points, isOuter, zIndex }: { img: HTMLImageElement, points?: {x:number, y:number}[] | null, isOuter: boolean, zIndex: number }) {
+function ImageMesh({ img, points, isOuter, zIndex, opacity = 1 }: { img: HTMLImageElement, points?: {x:number, y:number}[] | null, isOuter: boolean, zIndex: number, opacity?: number }) {
   const tex = useMemo(() => getTexture(img), [img]);
   const W = img.width;
   const H = img.height;
@@ -74,7 +75,7 @@ function ImageMesh({ img, points, isOuter, zIndex }: { img: HTMLImageElement, po
 
   return (
     <mesh ref={meshRef} geometry={geom} position={[0,0,zIndex]}>
-      <meshBasicMaterial map={tex} transparent depthTest={false} />
+      <meshBasicMaterial map={tex} transparent opacity={opacity} depthTest={false} />
     </mesh>
   );
 }
@@ -103,6 +104,9 @@ function SceneManager({ frames, images, progress }: ZoomCanvasProps) {
   const outerImg = images[idx + 1] || images[0];
   const innerImg = images[idx] || images[0];
   const framePoints = frames[idx + 1]?.points;
+
+  // 進捗 p に基づいて透明度を計算 (0.2の範囲でフェード)
+  const { innerOpacity, outerOpacity } = calculateFadeOpacities(p, 0.2);
   
   useFrame(() => {
     if (!cameraRef.current || !groupRef.current) return;
@@ -207,9 +211,9 @@ function SceneManager({ frames, images, progress }: ZoomCanvasProps) {
         near={-100} far={100} 
       />
       <group ref={groupRef}>
-        <ImageMesh img={outerImg} isOuter={true} zIndex={-2} />
+        <ImageMesh img={outerImg} isOuter={true} zIndex={-2} opacity={outerOpacity} />
         {framePoints && framePoints.length === 4 && (
-          <ImageMesh img={innerImg} points={framePoints} isOuter={false} zIndex={-1} />
+          <ImageMesh img={innerImg} points={framePoints} isOuter={false} zIndex={-1} opacity={innerOpacity} />
         )}
       </group>
     </>
