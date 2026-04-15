@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ZoomCanvas } from './components/ZoomCanvas';
 import { FrameEditor } from './tools/FrameEditor';
+import { RecursiveProcessor } from './tools/RecursiveProcessor';
 import { usePreloadImages } from './hooks/usePreloadImages';
 import type { FrameData } from './hooks/usePreloadImages';
 import framesData from './assets/data/frames.json';
@@ -11,6 +12,7 @@ function App() {
   const { images, isReady, progress: loadProgress } = usePreloadImages(frames, '/img/');
   const [progress, setProgress] = useState(0);
   const [showEditor, setShowEditor] = useState(false);
+  const [showBatchProcessor, setShowBatchProcessor] = useState(false);
 
   // マウスホイールでのスクロール操作
   useEffect(() => {
@@ -54,6 +56,13 @@ function App() {
           Open Frame Editor
         </button>
 
+        <button 
+          onClick={() => setShowBatchProcessor(true)} 
+          style={{ pointerEvents: 'auto', position: 'absolute', top: 70, right: 20, zIndex: 1000, background: 'rgba(52, 152, 219, 0.7)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '8px 16px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 'bold' }}
+        >
+          Open Batch Processor
+        </button>
+
         <div className="controls">
           <input 
             type="range" 
@@ -71,6 +80,7 @@ function App() {
       </div>
       
       {showEditor && <FrameEditor frames={frames} images={images} onClose={() => setShowEditor(false)} />}
+      {showBatchProcessor && <RecursiveProcessor frames={frames} images={images} onClose={() => setShowBatchProcessor(false)} />}
     </div>
   );
 }
