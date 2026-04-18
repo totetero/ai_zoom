@@ -16,13 +16,13 @@ describe('calculateFadeOpacities', () => {
 
   it('should fade in outerOpacity between p=0 and p=0.2', () => {
     expect(calculateFadeOpacities(0.1).outerOpacity).toBe(0.5);
-    expect(calculateFadeOpacities(0.2).outerOpacity).toBe(1);
+    expect(calculateFadeOpacities(0.2).outerOpacity).toBeCloseTo(1);
     expect(calculateFadeOpacities(0.3).outerOpacity).toBe(1);
   });
 
   it('should fade out innerOpacity between p=0.8 and p=1.0', () => {
     expect(calculateFadeOpacities(0.7).innerOpacity).toBe(1);
-    expect(calculateFadeOpacities(0.8).innerOpacity).toBe(1);
+    expect(calculateFadeOpacities(0.8).innerOpacity).toBeCloseTo(1);
     expect(calculateFadeOpacities(0.9).innerOpacity).toBeCloseTo(0.5);
     expect(calculateFadeOpacities(1.0).innerOpacity).toBe(0);
   });

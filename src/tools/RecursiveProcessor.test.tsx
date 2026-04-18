@@ -5,40 +5,52 @@ import * as THREE from 'three';
 
 // --- Three.js Mocks ---
 vi.mock('three', () => {
-  const Mesh = vi.fn().mockImplementation(() => ({
-    position: { set: vi.fn() },
-    scale: { set: vi.fn() },
-    matrix: { copy: vi.fn() },
-    matrixAutoUpdate: true,
-  }));
+  const Mesh = vi.fn().mockImplementation(function() {
+    return {
+      position: { set: vi.fn() },
+      scale: { set: vi.fn() },
+      matrix: { copy: vi.fn() },
+      matrixAutoUpdate: true,
+    };
+  });
   
-  const BufferGeometry = vi.fn().mockImplementation(() => ({
-    setAttribute: vi.fn(),
-    setIndex: vi.fn(),
-    dispose: vi.fn(),
-  }));
+  const BufferGeometry = vi.fn().mockImplementation(function() {
+    return {
+      setAttribute: vi.fn(),
+      setIndex: vi.fn(),
+      dispose: vi.fn(),
+    };
+  });
 
   return {
-    WebGLRenderer: vi.fn().mockImplementation(() => ({
-      setSize: vi.fn(),
-      setPixelRatio: vi.fn(),
-      setClearColor: vi.fn(),
-      render: vi.fn(),
-      dispose: vi.fn(),
-      domElement: {
-        toDataURL: vi.fn().mockReturnValue('data:image/jpeg;base64,mock'),
-      },
-    })),
-    Scene: vi.fn().mockImplementation(() => ({
-      add: vi.fn(),
-    })),
-    OrthographicCamera: vi.fn().mockImplementation(() => ({
-      position: { z: 0 },
-    })),
-    Texture: vi.fn().mockImplementation(() => ({
-      needsUpdate: false,
-      dispose: vi.fn(),
-    })),
+    WebGLRenderer: vi.fn().mockImplementation(function() {
+      return {
+        setSize: vi.fn(),
+        setPixelRatio: vi.fn(),
+        setClearColor: vi.fn(),
+        render: vi.fn(),
+        dispose: vi.fn(),
+        domElement: {
+          toDataURL: vi.fn().mockReturnValue('data:image/jpeg;base64,mock'),
+        },
+      };
+    }),
+    Scene: vi.fn().mockImplementation(function() {
+      return {
+        add: vi.fn(),
+      };
+    }),
+    OrthographicCamera: vi.fn().mockImplementation(function() {
+      return {
+        position: { z: 0 },
+      };
+    }),
+    Texture: vi.fn().mockImplementation(function() {
+      return {
+        needsUpdate: false,
+        dispose: vi.fn(),
+      };
+    }),
     Mesh,
     PlaneGeometry: vi.fn(),
     BufferGeometry,
@@ -95,7 +107,7 @@ describe('RecursiveProcessor', () => {
   it('Next Step ボタンで次のステップに遷移できる', async () => {
     render(<RecursiveProcessor frames={mockFrames} images={mockImages} onClose={mockOnClose} />);
     
-    const nextBtn = screen.getByText(/Next Step/i);
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
     fireEvent.click(nextBtn);
     
     await waitFor(() => {
@@ -107,7 +119,7 @@ describe('RecursiveProcessor', () => {
   it('Close ボタンが正しく機能する', () => {
     render(<RecursiveProcessor frames={mockFrames} images={mockImages} onClose={mockOnClose} />);
     
-    const closeBtn = screen.getByText(/Close/i);
+    const closeBtn = screen.getByRole('button', { name: /Close/i });
     fireEvent.click(closeBtn);
     
     expect(mockOnClose).toHaveBeenCalled();
@@ -116,14 +128,14 @@ describe('RecursiveProcessor', () => {
   it('Composite & Download ボタンがクリック可能である', async () => {
     render(<RecursiveProcessor frames={mockFrames} images={mockImages} onClose={mockOnClose} />);
     
-    const downloadBtn = screen.getByText(/Composite & Download/i);
+    const downloadBtn = screen.getByRole('button', { name: /Composite & Download/i });
     expect(downloadBtn).toBeDefined();
     
     // 実際にクリックしてアラートが出るか確認（レンダリングのモックが成功している前提）
     fireEvent.click(downloadBtn);
     
     await waitFor(() => {
-      expect(vi.globalThis.alert).toHaveBeenCalled();
+      expect(window.alert).toHaveBeenCalled();
     });
   });
 });
