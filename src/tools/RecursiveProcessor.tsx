@@ -77,7 +77,12 @@ export const RecursiveProcessor: React.FC<RecursiveProcessorProps> = ({ frames, 
       { x: innerImg.width, y: innerImg.height },
       { x: 0, y: innerImg.height }
     ];
-    innerMesh.matrix.copy(getHomographyMatrix4(srcTL, points));
+    // points (正規化座標) を baseImg のピクセル座標にスケールアップ
+    const scaledPoints = points.map(p => ({
+      x: p.x * W,
+      y: p.y * H
+    }));
+    innerMesh.matrix.copy(getHomographyMatrix4(srcTL, scaledPoints));
     scene.add(innerMesh);
 
     renderer.render(scene, camera);

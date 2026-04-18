@@ -20,8 +20,7 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
     if (currentFrame && currentFrame.points && currentFrame.points.length > 0) {
       setPoints(currentFrame.points);
     } else if (images[currentIndex]) {
-      const img = images[currentIndex];
-      const defaultPoints = calculateDefaultPoints(img.width, img.height);
+      const defaultPoints = calculateDefaultPoints();
       setPoints(defaultPoints);
       // allDataも初期化
       setAllData(prev => {
@@ -76,8 +75,10 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
     ctx.lineWidth = Math.max(2, 5 / scale);
     if (points.length === 4) {
       ctx.beginPath();
-      ctx.moveTo(points[0].x + padW, points[0].y + padH);
-      for (let i = 1; i < 4; i++) ctx.lineTo(points[i].x + padW, points[i].y + padH);
+      ctx.moveTo(points[0].x * img.width + padW, points[0].y * img.height + padH);
+      for (let i = 1; i < 4; i++) {
+        ctx.lineTo(points[i].x * img.width + padW, points[i].y * img.height + padH);
+      }
       ctx.closePath();
       ctx.stroke();
     }
@@ -86,7 +87,7 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
     points.forEach((p, i) => {
       ctx.fillStyle = draggingIndex === i ? '#ffff00' : '#ff0000';
       ctx.beginPath();
-      ctx.arc(p.x + padW, p.y + padH, Math.max(8, 18 / scale), 0, Math.PI * 2);
+      ctx.arc(p.x * img.width + padW, p.y * img.height + padH, Math.max(8, 18 / scale), 0, Math.PI * 2);
       ctx.fill();
       ctx.lineWidth = Math.max(1, 2 / scale);
       ctx.strokeStyle = 'white';
@@ -121,21 +122,35 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
       canvas.width,
       canvas.height,
       padW,
-      padH
+      padH,
+      img.width,
+      img.height
     );
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const pos = getCanvasMousePos(e);
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scale = canvas.width / rect.width;
-    const threshold = 20 * scale;
+    const img = images[currentIndex];
+    if (!canvas || !img) return;
 
-    const index = points.findIndex(p => {
-      const dx = p.x - pos.x;
-      const dy = p.y - pos.y;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    // マウスのキャンバス上でのピクセル座標
+    const mouseCanvasX = (e.clientX - rect.left) * scaleX;
+    const mouseCanvasY = (e.clientY - rect.top) * scaleY;
+
+    const { padW, padH } = calculatePadding(img.width, img.height);
+    const threshold = 20 * scaleX; // 20ブラウザピクセル相当
+
+    const index = points.findIndex((p) => {
+      // 頂点 p のキャンバス上でのピクセル座標
+      const ptCanvasX = p.x * img.width + padW;
+      const ptCanvasY = p.y * img.height + padH;
+
+      const dx = ptCanvasX - mouseCanvasX;
+      const dy = ptCanvasY - mouseCanvasY;
       return Math.sqrt(dx * dx + dy * dy) < threshold;
     });
 
@@ -173,8 +188,7 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
 
   const handleReset = () => {
     if (!images[currentIndex]) return;
-    const img = images[currentIndex];
-    const defaultPoints = calculateDefaultPoints(img.width, img.height);
+    const defaultPoints = calculateDefaultPoints();
     setPoints(defaultPoints);
     updateAllData(defaultPoints);
   };
@@ -211,8 +225,8 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
       { x: 0, y: prevImg.height }
     ];
     const dst = points.map(p => ({
-      x: (p.x + padW) * scale,
-      y: (p.y + padH) * scale
+      x: (p.x * img.width + padW) * scale,
+      y: (p.y * img.height + padH) * scale
     }));
     
     try {
