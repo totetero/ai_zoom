@@ -63,7 +63,7 @@ function ImageMesh({ img, points, isOuter, zIndex, opacity = 1 }: { img: HTMLIma
         {x: W, y: H},
         {x: 0, y: H}
       ];
-      // Note: points are in Top-Left, Top-Right, Bottom-Right, Bottom-Left
+      // Note: points are expected to be in pixel coordinates here
       const m = getHomographyMatrix4(src, points);
       meshRef.current.matrixAutoUpdate = false;
       meshRef.current.matrix.copy(m);
@@ -148,7 +148,13 @@ function SceneManager({ frames, images, progress }: ZoomCanvasProps) {
         {x: innerW, y: innerH},
         {x: 0, y: innerH}
       ];
-      const h_mat = getHomographyMatrix4(src, framePoints);
+      // framePoints (正規化座標) を Outer画像 (outerImg) のピクセル座標に変換
+      const scaledFramePoints = framePoints.map(p => ({
+        x: p.x * outerW,
+        y: p.y * outerH
+      }));
+      
+      const h_mat = getHomographyMatrix4(src, scaledFramePoints);
       const applyH = (pt: {x:number, y:number}) => {
         const vec = new THREE.Vector3(pt.x, pt.y, 0).applyMatrix4(h_mat);
         return { x: vec.x, y: vec.y };
@@ -201,6 +207,15 @@ function SceneManager({ frames, images, progress }: ZoomCanvasProps) {
     groupRef.current.matrix.copy(h_cam).invert();
   });
 
+  // points (正規化座標) を Outer画像 (outerImg) のピクセル座標に変換して ImageMesh に渡す
+  const scaledPointsForMesh = useMemo(() => {
+    if (!framePoints || framePoints.length !== 4) return null;
+    return framePoints.map(p => ({
+      x: p.x * outerImg.width,
+      y: p.y * outerImg.height
+    }));
+  }, [framePoints, outerImg]);
+
   return (
     <>
       <OrthographicCamera 
@@ -212,8 +227,8 @@ function SceneManager({ frames, images, progress }: ZoomCanvasProps) {
       />
       <group ref={groupRef}>
         <ImageMesh img={outerImg} isOuter={true} zIndex={-2} opacity={outerOpacity} />
-        {framePoints && framePoints.length === 4 && (
-          <ImageMesh img={innerImg} points={framePoints} isOuter={false} zIndex={-1} opacity={innerOpacity} />
+        {scaledPointsForMesh && (
+          <ImageMesh img={innerImg} points={scaledPointsForMesh} isOuter={false} zIndex={-1} opacity={innerOpacity} />
         )}
       </group>
     </>

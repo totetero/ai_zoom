@@ -6,7 +6,7 @@ export interface Point {
 export const PADDING_RATIO = 0.2;
 
 /**
- * クライアント座標（マウスイベント等）を画像内の座標に変換する
+ * クライアント座標（マウスイベント等）を画像内の正規化座標（0.0〜1.0）に変換する
  */
 export function calculateImageCoord(
   clientX: number,
@@ -15,14 +15,19 @@ export function calculateImageCoord(
   canvasWidth: number,
   canvasHeight: number,
   paddingW: number,
-  paddingH: number
+  paddingH: number,
+  imageW: number,
+  imageH: number
 ): Point {
   const scaleX = canvasWidth / rect.width;
   const scaleY = canvasHeight / rect.height;
 
+  const x = (clientX - rect.left) * scaleX - paddingW;
+  const y = (clientY - rect.top) * scaleY - paddingH;
+
   return {
-    x: (clientX - rect.left) * scaleX - paddingW,
-    y: (clientY - rect.top) * scaleY - paddingH,
+    x: x / imageW,
+    y: y / imageH,
   };
 }
 
@@ -37,13 +42,13 @@ export function calculatePadding(width: number, height: number): { padW: number;
 }
 
 /**
- * デフォルトの4隅の座標を計算する
+ * デフォルトの4隅の正規化座標を計算する
  */
-export function calculateDefaultPoints(width: number, height: number): Point[] {
+export function calculateDefaultPoints(): Point[] {
   return [
-    { x: width * 0.25, y: height * 0.25 },
-    { x: width * 0.75, y: height * 0.25 },
-    { x: width * 0.75, y: height * 0.75 },
-    { x: width * 0.25, y: height * 0.75 },
+    { x: 0.25, y: 0.25 },
+    { x: 0.75, y: 0.25 },
+    { x: 0.75, y: 0.75 },
+    { x: 0.25, y: 0.75 },
   ];
 }
