@@ -1,0 +1,14 @@
+[
+  {
+    "id": "child1",
+    "name": "一人目の子",
+    "imageDir": "/img/child1/",
+    "framesPath": "frames_child1.json"
+  },
+  {
+    "id": "child2",
+    "name": "二人目の子",
+    "imageDir": "/img/child2/",
+    "framesPath": "frames_child2.json"
+  }
+]

@@ -8,9 +8,10 @@ interface RecursiveProcessorProps {
   frames: FrameData[];
   images: HTMLImageElement[];
   onClose: () => void;
+  subject: { id: string, name: string, imageDir: string };
 }
 
-export const RecursiveProcessor: React.FC<RecursiveProcessorProps> = ({ frames, images, onClose }) => {
+export const RecursiveProcessor: React.FC<RecursiveProcessorProps> = ({ frames, images, onClose, subject }) => {
   const [step, setStep] = useState(0);
   const [processedImages, setProcessedImages] = useState<(string | null)[]>(new Array(frames.length).fill(null));
   const mainCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -186,8 +187,8 @@ export const RecursiveProcessor: React.FC<RecursiveProcessorProps> = ({ frames, 
       <div style={{ marginTop: '15px', background: '#333', padding: '15px', borderRadius: '8px', color: '#eee', maxWidth: '800px', fontSize: '14px' }}>
         <strong>再帰的処理フロー:</strong><br />
         1. 「Composite & Download」をクリックして合成済み画像を保存します。<br />
-        2. 保存した画像をPhotoshopなどの外部ツールで開き、娘さんの顔をAI等で加工します。<br />
-        3. 加工した画像を <code>public/img/</code> に元の名前で上書き保存してください。<br />
+        2. 保存した画像をPhotoshopなどの外部ツールで開き、{subject.name}の顔をAI等で加工します。<br />
+        3. 加工した画像を <code>public{subject.imageDir}</code> に元の名前で上書き保存してください。<br />
         4. 保存後、「Next Step」をクリックして次の画像に進みます（前の加工が自動的にフレームへ埋め込まれます）。<br />
         ※ <b>「Composite & Download」を押さずに進んだ場合でも、自動的にオリジナルの画像が次のステップのフレームに埋め込まれます。</b>
       </div>
