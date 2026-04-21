@@ -17,6 +17,8 @@ describe('FrameEditor', () => {
     { width: 1000, height: 1000 } as HTMLImageElement,
   ];
 
+  const mockSubject = { id: 'child2', name: 'Child 2', framesPath: 'frames_child2.json' };
+
   beforeEach(() => {
     vi.clearAllMocks();
     
@@ -45,7 +47,7 @@ describe('FrameEditor', () => {
   });
 
   it('should render the editor with controls', () => {
-    render(<FrameEditor frames={mockFrames} images={mockImages} onClose={mockOnClose} />);
+    render(<FrameEditor frames={mockFrames} images={mockImages} onClose={mockOnClose} subject={mockSubject} />);
     
     expect(screen.getByText(/Close Editor/i)).toBeDefined();
     expect(screen.getByText(/Prev Image/i)).toBeDefined();
@@ -56,13 +58,13 @@ describe('FrameEditor', () => {
   });
 
   it('should call onClose when Close button is clicked', () => {
-    render(<FrameEditor frames={mockFrames} images={mockImages} onClose={mockOnClose} />);
+    render(<FrameEditor frames={mockFrames} images={mockImages} onClose={mockOnClose} subject={mockSubject} />);
     fireEvent.click(screen.getByText(/Close Editor/i));
     expect(mockOnClose).toHaveBeenCalled();
   });
 
   it('should navigate between images', () => {
-    render(<FrameEditor frames={mockFrames} images={mockImages} onClose={mockOnClose} />);
+    render(<FrameEditor frames={mockFrames} images={mockImages} onClose={mockOnClose} subject={mockSubject} />);
     
     const nextBtn = screen.getByText(/Next Image/i);
     const prevBtn = screen.getByText(/Prev Image/i);
@@ -81,7 +83,7 @@ describe('FrameEditor', () => {
   it('should reset points when Reset button is clicked', () => {
     // This is a bit hard to test deeply without checking internal state,
     // but we can check if it doesn't crash and the UI remains stable.
-    render(<FrameEditor frames={mockFrames} images={mockImages} onClose={mockOnClose} />);
+    render(<FrameEditor frames={mockFrames} images={mockImages} onClose={mockOnClose} subject={mockSubject} />);
     fireEvent.click(screen.getByText(/Reset to Default/i));
     // No error = good for now in this shallow interaction test
   });

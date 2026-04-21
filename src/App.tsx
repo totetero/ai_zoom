@@ -4,15 +4,43 @@ import { FrameEditor } from './tools/FrameEditor';
 import { RecursiveProcessor } from './tools/RecursiveProcessor';
 import { usePreloadImages } from './hooks/usePreloadImages';
 import type { FrameData } from './hooks/usePreloadImages';
-import framesData from './assets/data/frames.json';
+import subjectsData from './assets/data/subjects.json';
+import framesChild1 from './assets/data/frames_child1.json';
+import framesChild2 from './assets/data/frames_child2.json';
 import './App.css';
 
+type Subject = {
+  id: string;
+  name: string;
+  imageDir: string;
+  framesPath: string;
+};
+
+const framesMap: Record<string, FrameData[]> = {
+  child1: framesChild1 as FrameData[],
+  child2: framesChild2 as FrameData[],
+};
+
 function App() {
-  const [frames] = useState<FrameData[]>(framesData as FrameData[]);
-  const { images, isReady, progress: loadProgress } = usePreloadImages(frames, '/img/');
+  const [subjects] = useState<Subject[]>(subjectsData as Subject[]);
+  const [currentSubjectId, setCurrentSubjectId] = useState(() => {
+    return localStorage.getItem('selectedSubjectId') || subjects[0].id;
+  });
+
+  const subject = subjects.find(s => s.id === currentSubjectId) || subjects[0];
+  const frames = framesMap[currentSubjectId] || framesMap[subjects[0].id];
+
+  const { images, isReady, progress: loadProgress } = usePreloadImages(frames, subject.imageDir);
   const [progress, setProgress] = useState(0);
   const [showEditor, setShowEditor] = useState(false);
   const [showBatchProcessor, setShowBatchProcessor] = useState(false);
+
+  // 被写体切り替え
+  const handleSubjectChange = (id: string) => {
+    setCurrentSubjectId(id);
+    setProgress(0);
+    localStorage.setItem('selectedSubjectId', id);
+  };
 
   // マウスホイールでのスクロール操作
   useEffect(() => {
@@ -27,13 +55,14 @@ function App() {
   if (!isReady) {
     return (
       <div className="loading-screen">
-        <h2>Loading Images... {Math.round(loadProgress)}%</h2>
+        <h2>Loading Images for {subject.name}... {Math.round(loadProgress)}%</h2>
       </div>
     );
   }
 
-  const currentYear = frames[Math.max(0, Math.floor(progress + 0.5))].year;
-  const currentMessage = frames[Math.max(0, Math.floor(progress + 0.5))].message;
+  const safeIndex = Math.max(0, Math.floor(progress + 0.5));
+  const currentYear = frames[safeIndex]?.year || '';
+  const currentMessage = frames[safeIndex]?.message || '';
 
   return (
     <div className="app-container">
@@ -47,6 +76,27 @@ function App() {
         <div className="text-info">
           <h1 className="year-title">{currentYear}</h1>
           <p className="message">{currentMessage}</p>
+        </div>
+
+        <div className="subject-selector" style={{ pointerEvents: 'auto', position: 'absolute', top: 20, left: 20, zIndex: 1000, display: 'flex', gap: '5px' }}>
+          {subjects.map(s => (
+            <button
+              key={s.id}
+              onClick={() => handleSubjectChange(s.id)}
+              style={{
+                background: currentSubjectId === s.id ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.5)',
+                color: currentSubjectId === s.id ? '#000' : '#fff',
+                border: '1px solid rgba(255,255,255,0.3)',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                transition: 'all 0.3s'
+              }}
+            >
+              {s.name}
+            </button>
+          ))}
         </div>
         
         <button 
@@ -79,8 +129,8 @@ function App() {
         </div>
       </div>
       
-      {showEditor && <FrameEditor frames={frames} images={images} onClose={() => setShowEditor(false)} />}
-      {showBatchProcessor && <RecursiveProcessor frames={frames} images={images} onClose={() => setShowBatchProcessor(false)} />}
+      {showEditor && <FrameEditor frames={frames} images={images} onClose={() => setShowEditor(false)} subject={subject} />}
+      {showBatchProcessor && <RecursiveProcessor frames={frames} images={images} onClose={() => setShowBatchProcessor(false)} subject={subject} />}
     </div>
   );
 }

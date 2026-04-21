@@ -74,6 +74,8 @@ describe('RecursiveProcessor', () => {
     { width: 100, height: 100, src: 'img1' } as HTMLImageElement,
   ];
 
+  const mockSubject = { id: 'child2', name: 'Child 2', imageDir: '/img/child2/' };
+
   beforeEach(() => {
     vi.clearAllMocks();
     
@@ -98,14 +100,14 @@ describe('RecursiveProcessor', () => {
   });
 
   it('初期レンダリングで最初のステップの情報が表示される', async () => {
-    render(<RecursiveProcessor frames={mockFrames} images={mockImages} onClose={mockOnClose} />);
+    render(<RecursiveProcessor frames={mockFrames} images={mockImages} onClose={mockOnClose} subject={mockSubject} />);
     
     expect(screen.getByText(/STEP 1 \/ 2/i)).toBeDefined();
     expect(screen.getByText(/2021_birth.jpg/i)).toBeDefined();
   });
 
   it('Next Step ボタンで次のステップに遷移できる', async () => {
-    render(<RecursiveProcessor frames={mockFrames} images={mockImages} onClose={mockOnClose} />);
+    render(<RecursiveProcessor frames={mockFrames} images={mockImages} onClose={mockOnClose} subject={mockSubject} />);
     
     const nextBtn = screen.getByRole('button', { name: /Next Step/i });
     fireEvent.click(nextBtn);
@@ -117,7 +119,7 @@ describe('RecursiveProcessor', () => {
   });
 
   it('Close ボタンが正しく機能する', () => {
-    render(<RecursiveProcessor frames={mockFrames} images={mockImages} onClose={mockOnClose} />);
+    render(<RecursiveProcessor frames={mockFrames} images={mockImages} onClose={mockOnClose} subject={mockSubject} />);
     
     const closeBtn = screen.getByRole('button', { name: /Close/i });
     fireEvent.click(closeBtn);
@@ -126,7 +128,7 @@ describe('RecursiveProcessor', () => {
   });
 
   it('Composite & Download ボタンがクリック可能である', async () => {
-    render(<RecursiveProcessor frames={mockFrames} images={mockImages} onClose={mockOnClose} />);
+    render(<RecursiveProcessor frames={mockFrames} images={mockImages} onClose={mockOnClose} subject={mockSubject} />);
     
     const downloadBtn = screen.getByRole('button', { name: /Composite & Download/i });
     expect(downloadBtn).toBeDefined();

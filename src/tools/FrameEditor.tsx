@@ -4,7 +4,12 @@ import type { FrameData } from '../hooks/usePreloadImages';
 import { type Point, calculateImageCoord, calculatePadding, calculateDefaultPoints } from '../utils/coords';
 import { getHomographyMatrix4 } from '../utils/homography';
 
-export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageElement[], onClose: () => void }> = ({ frames, images, onClose }) => {
+export const FrameEditor: React.FC<{ 
+  frames: FrameData[], 
+  images: HTMLImageElement[], 
+  onClose: () => void,
+  subject: { id: string, name: string, framesPath: string }
+}> = ({ frames, images, onClose, subject }) => {
   const [currentIndex, setCurrentIndex] = useState(1);
   const [points, setPoints] = useState<Point[]>([]);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
@@ -304,7 +309,7 @@ export const FrameEditor: React.FC<{ frames: FrameData[], images: HTMLImageEleme
 
       {generatedHtml && (
         <div style={{ width: '80%', marginTop: '20px' }}>
-          <p style={{ color: '#0f0', margin: '5px 0' }}>Data Copied/Ready (replace inside src/assets/data/frames.json):</p>
+          <p style={{ color: '#0f0', margin: '5px 0' }}>Data Copied/Ready (replace inside src/assets/data/{subject.framesPath}):</p>
           <textarea style={{ width: '100%', height: '200px', fontFamily: 'monospace', padding: '10px', background: '#111', color: '#fff', border: '1px solid #444' }} value={generatedHtml} readOnly onClick={(e) => { (e.target as HTMLTextAreaElement).select(); navigator.clipboard.writeText(generatedHtml); }} />
         </div>
       )}
