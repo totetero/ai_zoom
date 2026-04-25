@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RecursiveProcessor } from './RecursiveProcessor';
-import * as THREE from 'three';
+
 
 // --- Three.js Mocks ---
 vi.mock('three', () => {
