@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import type { FrameData } from '../hooks/usePreloadImages';
-import { calculatePadding, calculateImageCoord } from '../utils/coords';
+import { calculatePadding } from '../utils/coords';
 import { getHomographyMatrix4 } from '../utils/homography';
 
 interface RecursiveProcessorProps {

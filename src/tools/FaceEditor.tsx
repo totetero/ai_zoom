@@ -94,7 +94,7 @@ export const FaceEditor: React.FC<FaceEditorProps> = ({ frames, images, onClose 
     if (!canvas || !img) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     const { padW, padH } = calculatePadding(img.width, img.height);
-    return calculateImageCoord(e.clientX, e.clientY, rect, canvas.width, canvas.height, padW, padH);
+    return calculateImageCoord(e.clientX, e.clientY, rect, canvas.width, canvas.height, padW, padH, img.width, img.height);
   };
 
   const drawMask = (pos: {x: number, y: number}) => {

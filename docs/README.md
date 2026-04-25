@@ -25,3 +25,5 @@
     *   編集画面での位置合わせ用オーバーレイ機能の詳細。
 *   **[レスポンシブデザイン詳細仕様 (ResponsiveDesign_Specs.md)](file:///Users/tote/project/git/totetero/ai_zoom/docs/ResponsiveDesign_Specs.md)**
     *   画面サイズ変更やモバイルデバイスへの対応方針と具体的な実装仕様。
+*   **[デプロイ仕様書 (Deployment.md)](file:///Users/tote/project/git/totetero/ai_zoom/docs/Deployment.md)**
+    *   GitHub Pages への自動デプロイフローと環境設定について。
