@@ -66,10 +66,14 @@ function ImageMesh({ img, points, isOuter, zIndex, opacity = 1 }: { img: HTMLIma
       // Note: points are expected to be in pixel coordinates here
       const m = getHomographyMatrix4(src, points);
       meshRef.current.matrixAutoUpdate = false;
-      meshRef.current.matrix.copy(m);
+      if (meshRef.current.matrix) {
+        meshRef.current.matrix.copy(m);
+      }
     } else {
       meshRef.current.matrixAutoUpdate = false;
-      meshRef.current.matrix.identity();
+      if (meshRef.current.matrix) {
+        meshRef.current.matrix.identity();
+      }
     }
   }, [points, isOuter, W, H]);
 
@@ -204,7 +208,9 @@ function SceneManager({ frames, images, progress }: ZoomCanvasProps) {
     // 現在のカメラビューを画面にピッタリ写すための逆変換行列
     const h_cam = getHomographyMatrix4(screen_src, curr_dst);
     groupRef.current.matrixAutoUpdate = false;
-    groupRef.current.matrix.copy(h_cam).invert();
+    if (groupRef.current.matrix) {
+      groupRef.current.matrix.copy(h_cam).invert();
+    }
   });
 
   // points (正規化座標) を Outer画像 (outerImg) のピクセル座標に変換して ImageMesh に渡す
@@ -238,8 +244,8 @@ function SceneManager({ frames, images, progress }: ZoomCanvasProps) {
 export const ZoomCanvas: React.FC<ZoomCanvasProps> = (props) => {
   if (props.images.length === 0) return null;
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0, overflow: 'hidden' }}>
-      <Canvas style={{ background: '#000' }} gl={{ antialias: true }}>
+    <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, overflow: 'hidden' }}>
+      <Canvas style={{ background: '#000' }} gl={{ antialias: true }} orthographic>
         <SceneManager {...props} />
       </Canvas>
     </div>

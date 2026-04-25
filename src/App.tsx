@@ -73,45 +73,40 @@ function App() {
       />
       
       <div className="overlay">
+        <div className="top-left-ui">
+          <div className="subject-selector">
+            {subjects.map(s => (
+              <button
+                key={s.id}
+                onClick={() => handleSubjectChange(s.id)}
+                className={`subject-btn ${currentSubjectId === s.id ? 'active' : ''}`}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="top-right-ui">
+          <button 
+            onClick={() => setShowEditor(true)} 
+            className="tool-btn"
+          >
+            Open Frame Editor
+          </button>
+
+          <button 
+            onClick={() => setShowBatchProcessor(true)} 
+            className="tool-btn primary"
+          >
+            Open Batch Processor
+          </button>
+        </div>
+
         <div className="text-info">
           <h1 className="year-title">{currentYear}</h1>
           <p className="message">{currentMessage}</p>
         </div>
-
-        <div className="subject-selector" style={{ pointerEvents: 'auto', position: 'absolute', top: 20, left: 20, zIndex: 1000, display: 'flex', gap: '5px' }}>
-          {subjects.map(s => (
-            <button
-              key={s.id}
-              onClick={() => handleSubjectChange(s.id)}
-              style={{
-                background: currentSubjectId === s.id ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.5)',
-                color: currentSubjectId === s.id ? '#000' : '#fff',
-                border: '1px solid rgba(255,255,255,0.3)',
-                padding: '8px 16px',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                transition: 'all 0.3s'
-              }}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-        
-        <button 
-          onClick={() => setShowEditor(true)} 
-          style={{ pointerEvents: 'auto', position: 'absolute', top: 20, right: 20, zIndex: 1000, background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '8px 16px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit' }}
-        >
-          Open Frame Editor
-        </button>
-
-        <button 
-          onClick={() => setShowBatchProcessor(true)} 
-          style={{ pointerEvents: 'auto', position: 'absolute', top: 70, right: 20, zIndex: 1000, background: 'rgba(52, 152, 219, 0.7)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '8px 16px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 'bold' }}
-        >
-          Open Batch Processor
-        </button>
 
         <div className="controls">
           <input 
