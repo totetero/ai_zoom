@@ -23,3 +23,5 @@
     *   座標取得補助ツールの操作方法とその設計変更点について。
 *   **[オーバーレイ表示機能 (FrameEditor_OverlayFeature.md)](file:///Users/tote/project/git/totetero/ai_zoom/docs/FrameEditor_OverlayFeature.md)**
     *   編集画面での位置合わせ用オーバーレイ機能の詳細。
+*   **[レスポンシブデザイン詳細仕様 (ResponsiveDesign_Specs.md)](file:///Users/tote/project/git/totetero/ai_zoom/docs/ResponsiveDesign_Specs.md)**
+    *   画面サイズ変更やモバイルデバイスへの対応方針と具体的な実装仕様。
