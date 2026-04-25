@@ -73,7 +73,9 @@ export function usePreloadImages(
         fallbackImg.src = canvas.toDataURL();
       };
 
-      img.src = `${baseUrl}${frame.filename}`;
+      const cleanBaseUrl = baseUrl.startsWith('/') ? baseUrl.slice(1) : baseUrl;
+      const fullBaseUrl = import.meta.env.BASE_URL + cleanBaseUrl;
+      img.src = `${fullBaseUrl}${frame.filename}`;
     });
   }, [frames, baseUrl]);
 
