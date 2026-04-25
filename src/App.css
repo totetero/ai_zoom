@@ -1,11 +1,32 @@
+:root {
+  --primary-color: #fff;
+  --bg-color: #111;
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+  --accent-color: #3498db;
+  --error-color: #e74c3c;
+  --success-color: #2ecc71;
+  
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  --spacing-xs: 5px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 20px;
+  --spacing-xl: 40px;
+  
+  --title-font-size: clamp(3rem, 12vw, 6rem);
+  --message-font-size: clamp(1rem, 4vw, 1.5rem);
+  --ui-font-size: 0.9rem;
+}
+
 body, html {
   margin: 0;
   padding: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #111;
-  color: white;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--primary-color);
+  font-family: var(--font-main);
   overflow: hidden;
 }
 
@@ -14,8 +35,10 @@ body, html {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  font-size: 2rem;
+  font-size: clamp(1.2rem, 5vw, 2rem);
   background-color: #000;
+  padding: var(--spacing-lg);
+  text-align: center;
 }
 
 .app-container {
@@ -37,21 +60,93 @@ body, html {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 40px;
+  padding: var(--spacing-xl);
   box-sizing: border-box;
   background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.7) 150%);
+}
+
+/* UI Elements Grouping */
+.top-left-ui {
+  position: absolute;
+  top: var(--spacing-lg);
+  left: var(--spacing-lg);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  pointer-events: auto;
+}
+
+.top-right-ui {
+  position: absolute;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  pointer-events: auto;
+  align-items: flex-end;
+}
+
+.subject-selector {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.subject-btn {
+  background: var(--overlay-bg);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 8px 16px;
+  borderRadius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+  font-size: var(--ui-font-size);
+}
+
+.subject-btn.active {
+  background: rgba(255,255,255,0.8);
+  color: #000;
+}
+
+.tool-btn {
+  background: var(--overlay-bg);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--ui-font-size);
+  transition: all 0.2s;
+}
+
+.tool-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.tool-btn.primary {
+  background: rgba(52, 152, 219, 0.7);
+  font-weight: bold;
+}
+
+.tool-btn.primary:hover {
+  background: rgba(52, 152, 219, 0.9);
 }
 
 .text-info {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: var(--spacing-xl);
   pointer-events: none;
 }
 
 .year-title {
-  font-size: 6rem;
+  font-size: var(--title-font-size);
   margin: 0;
   font-weight: 900;
   text-shadow: 0 8px 30px rgba(0,0,0,0.9);
@@ -60,7 +155,7 @@ body, html {
 }
 
 .message {
-  font-size: 1.5rem;
+  font-size: var(--message-font-size);
   margin: 10px 0 0 0;
   opacity: 0.9;
   font-weight: 500;
@@ -70,7 +165,7 @@ body, html {
 .controls {
   pointer-events: auto;
   align-self: center;
-  width: 60%;
+  width: 90%;
   max-width: 600px;
   display: flex;
   flex-direction: column;
@@ -91,8 +186,8 @@ body, html {
 
 .slider::-webkit-slider-thumb {
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #fff;
   cursor: pointer;
@@ -100,8 +195,45 @@ body, html {
 }
 
 .instructions {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   opacity: 0.6;
   text-transform: uppercase;
   letter-spacing: 2px;
 }
+
+/* Media Queries for Mobile Portals */
+@media (max-width: 768px) {
+  .overlay {
+    padding: var(--spacing-lg);
+  }
+
+  .top-left-ui, .top-right-ui {
+    position: static;
+    width: 100%;
+    align-items: center;
+    padding-top: var(--spacing-md);
+  }
+  
+  .top-left-ui {
+    order: -2;
+  }
+  
+  .top-right-ui {
+    order: -1;
+    margin-top: var(--spacing-sm);
+  }
+
+  .overlay {
+    justify-content: space-between;
+  }
+  
+  .text-info {
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+
+  .controls {
+    width: 100%;
+  }
+}
+
