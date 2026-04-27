@@ -99,4 +99,42 @@ describe('useVideoRecorder', () => {
     expect(onProgress).toHaveBeenLastCalledWith(1);
     expect(result.current.isRecording).toBe(false);
   });
+
+  it('サポートされているMIMEタイプの中からMP4を優先的に選択すること', () => {
+    const requestedTypes: string[] = [];
+    (global.MediaRecorder as any).isTypeSupported.mockImplementation((type: string) => {
+      requestedTypes.push(type);
+      // 全てサポートしていると仮定した場合、最初に呼ばれたものを返す
+      return true;
+    });
+
+    const { result } = renderHook(() => useVideoRecorder('zoom-canvas'));
+    
+    act(() => {
+      result.current.startRecording();
+    });
+
+    // 最初に video/mp4;codecs=h264 が試行されること
+    expect(requestedTypes[0]).toBe('video/mp4;codecs=h264');
+    // MediaRecorderが最初のタイプで作成されること
+    expect(global.MediaRecorder).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      mimeType: 'video/mp4;codecs=h264'
+    }));
+  });
+
+  it('MP4がサポートされていない場合にWebMにフォールバックすること', () => {
+    (global.MediaRecorder as any).isTypeSupported.mockImplementation((type: string) => {
+      return type.includes('video/webm');
+    });
+
+    const { result } = renderHook(() => useVideoRecorder('zoom-canvas'));
+    
+    act(() => {
+      result.current.startRecording();
+    });
+
+    // WebMのいずれかが選択されること
+    const callMimeType = (global.MediaRecorder as any).mock.calls[0][1].mimeType;
+    expect(callMimeType).toContain('video/webm');
+  });
 });

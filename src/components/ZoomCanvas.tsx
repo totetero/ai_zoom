@@ -260,7 +260,19 @@ export const ZoomCanvas: React.FC<ZoomCanvasProps> = (props) => {
   if (props.images.length === 0) return null;
   return (
     <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, overflow: 'hidden' }}>
-      <Canvas id="zoom-canvas" style={{ background: '#000' }} gl={{ antialias: true, preserveDrawingBuffer: true }} orthographic>
+      <Canvas 
+        id="zoom-canvas" 
+        style={{ background: '#000' }} 
+        gl={{ 
+          antialias: true, 
+          preserveDrawingBuffer: true,
+          alpha: false // 動画出力時の色化け防止のため不透明にする
+        }} 
+        onCreated={({ gl }) => {
+          gl.setClearColor('#000000');
+        }}
+        orthographic
+      >
         <SceneManager {...props} />
       </Canvas>
     </div>
