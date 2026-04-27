@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 export type FrameData = {
   id: number;
   filename: string;
-  year: number;
+  year: string | number;
   age: number;
   message: string;
   frameRect?: {
