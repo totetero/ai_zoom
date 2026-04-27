@@ -237,3 +237,57 @@ body, html {
   }
 }
 
+.tool-btn.record-btn {
+  background: rgba(231, 76, 60, 0.7);
+  font-weight: bold;
+}
+
+.tool-btn.record-btn:hover:not(:disabled) {
+  background: rgba(231, 76, 60, 0.9);
+}
+
+.tool-btn.record-btn.recording {
+  background: rgba(192, 57, 43, 0.9);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.recording-overlay {
+  position: absolute;
+  top: 100px;
+  right: 30px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 8px 15px;
+  border-radius: 20px;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  background-color: #e74c3c;
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.recording-overlay span {
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
