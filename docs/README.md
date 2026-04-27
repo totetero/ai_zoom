@@ -27,3 +27,5 @@
     *   画面サイズ変更やモバイルデバイスへの対応方針と具体的な実装仕様。
 *   **[デプロイ仕様書 (Deployment.md)](file:///Users/tote/project/git/totetero/ai_zoom/docs/Deployment.md)**
     *   GitHub Pages への自動デプロイフローと環境設定について。
+*   **[動画録画機能仕様書 (VideoRecording_Specs.md)](file:///Users/tote/project/git/totetero/ai_zoom/docs/VideoRecording_Specs.md)**
+    *   成長動画を録画・保存する機能の技術仕様とアニメーション（イージング）の仕組みについて。

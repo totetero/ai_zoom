@@ -3,6 +3,7 @@ import { ZoomCanvas } from './components/ZoomCanvas';
 import { FrameEditor } from './tools/FrameEditor';
 import { RecursiveProcessor } from './tools/RecursiveProcessor';
 import { usePreloadImages } from './hooks/usePreloadImages';
+import { useVideoRecorder } from './hooks/useVideoRecorder';
 import type { FrameData } from './hooks/usePreloadImages';
 import subjectsData from './assets/data/subjects.json';
 import framesChild1 from './assets/data/frames_child1.json';
@@ -35,6 +36,12 @@ function App() {
   const [showEditor, setShowEditor] = useState(false);
   const [showBatchProcessor, setShowBatchProcessor] = useState(false);
 
+  const { isRecording, recordAutoZoom } = useVideoRecorder('zoom-canvas');
+
+  const handleStartRecording = () => {
+    recordAutoZoom(frames.length - 1, setProgress, 2500);
+  };
+
   // 被写体切り替え
   const handleSubjectChange = (id: string) => {
     setCurrentSubjectId(id);
@@ -45,12 +52,13 @@ function App() {
   // マウスホイールでのスクロール操作
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
+      if (isRecording) return;
       e.preventDefault();
       setProgress(prev => Math.max(0, Math.min(frames.length - 1, prev + e.deltaY * 0.001)));
     };
     window.addEventListener('wheel', handleWheel, { passive: false });
     return () => window.removeEventListener('wheel', handleWheel);
-  }, [frames.length]);
+  }, [frames.length, isRecording]);
 
   if (!isReady) {
     return (
@@ -101,6 +109,14 @@ function App() {
           >
             Open Batch Processor
           </button>
+
+          <button 
+            onClick={handleStartRecording} 
+            className={`tool-btn record-btn ${isRecording ? 'recording' : ''}`}
+            disabled={isRecording}
+          >
+            {isRecording ? 'Recording...' : 'Record Growth Video'}
+          </button>
         </div>
 
         <div className="text-info">
@@ -119,10 +135,17 @@ function App() {
             className="slider"
           />
           <div className="instructions">
-            Scroll or drag slider to explore
+            {isRecording ? 'Recording growth video... please wait.' : 'Scroll or drag slider to explore'}
           </div>
         </div>
       </div>
+      
+      {isRecording && (
+        <div className="recording-overlay">
+          <div className="recording-dot"></div>
+          <span>REC</span>
+        </div>
+      )}
       
       {showEditor && <FrameEditor frames={frames} images={images} onClose={() => setShowEditor(false)} subject={subject} />}
       {showBatchProcessor && <RecursiveProcessor frames={frames} images={images} onClose={() => setShowBatchProcessor(false)} subject={subject} />}

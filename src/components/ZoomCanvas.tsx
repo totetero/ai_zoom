@@ -260,7 +260,7 @@ export const ZoomCanvas: React.FC<ZoomCanvasProps> = (props) => {
   if (props.images.length === 0) return null;
   return (
     <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, overflow: 'hidden' }}>
-      <Canvas style={{ background: '#000' }} gl={{ antialias: true }} orthographic>
+      <Canvas id="zoom-canvas" style={{ background: '#000' }} gl={{ antialias: true, preserveDrawingBuffer: true }} orthographic>
         <SceneManager {...props} />
       </Canvas>
     </div>

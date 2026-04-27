@@ -4,7 +4,7 @@ import { ZoomCanvas } from './ZoomCanvas';
 
 // Mock Three.js and React Three Fiber
 vi.mock('@react-three/fiber', () => ({
-  Canvas: ({ children }: { children: React.ReactNode }) => <div data-testid="mock-canvas">{children}</div>,
+  Canvas: ({ children, id }: { children: React.ReactNode, id?: string }) => <div data-testid="mock-canvas" id={id}>{children}</div>,
   useThree: () => ({ size: { width: 1000, height: 500 } }),
   useFrame: vi.fn(),
 }));
@@ -80,5 +80,11 @@ describe('ZoomCanvas Resize', () => {
   it('passes orthographic prop to Canvas', () => {
     render(<ZoomCanvas frames={mockFrames} images={mockImages} progress={0} />);
     // Since we mocked Canvas, we can't easily check props unless we capture them in mock
+  });
+
+  it('assigns zoom-canvas id to Canvas', () => {
+    const { getByTestId } = render(<ZoomCanvas frames={mockFrames} images={mockImages} progress={0} />);
+    const canvas = getByTestId('mock-canvas');
+    expect(canvas.id).toBe('zoom-canvas');
   });
 });
