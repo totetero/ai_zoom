@@ -12,7 +12,7 @@
 - **設定**: 
     - `Canvas.captureStream(30)` により 30 FPS でキャプチャ。
     - WebGLコンテキストの初期化時に `preserveDrawingBuffer: true` を設定し、外部からのバッファ読み取りを安定化させています。
-- **保存形式**: ブラウザのサポート状況に応じ、`video/webm;codecs=vp9` を優先し、フォールバックとして `video/mp4` 等を使用します。
+- **保存形式**: ブラウザのサポート状況に応じ、`video/mp4;codecs=h264` を優先し、フォールバックとして `video/webm` 等を使用します。
 
 ### 2.2 アニメーション制御
 - **自動進行**: `useVideoRecorder` フック内の `recordAutoZoom` 関数が `progress` 値を 0.0 から `frames.length - 1` まで自動的に増加させます。
@@ -49,4 +49,4 @@
 ## 5. 保存と書き出し
 - アニメーションが最後のフレームに到達した後、約0.5秒の静止時間を設けてから録画を停止します。
 - 録画停止後、ブラウザのダウンロード機能を通じてファイルが自動的に保存されます。
-- ファイル名規則: `growth-video-YYYY-MM-DD-HH-mm-ss.webm`
+- ファイル名規則: `growth-video-YYYY-MM-DD-HH-mm-ss.mp4` (またはブラウザがサポートする形式の拡張子)
