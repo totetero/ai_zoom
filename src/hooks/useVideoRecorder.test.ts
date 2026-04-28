@@ -29,14 +29,14 @@ describe('useVideoRecorder', () => {
     }
 
     // MediaRecorder Mock
-    global.MediaRecorder = vi.fn().mockImplementation(function(this: any) {
+    globalThis.MediaRecorder = vi.fn().mockImplementation(function(this: any) {
       this.start = vi.fn();
       this.stop = vi.fn().mockImplementation(() => { this.state = 'inactive'; });
       this.state = 'inactive';
       this.ondataavailable = null;
       this.onstop = null;
     }) as any;
-    (global.MediaRecorder as any).isTypeSupported = vi.fn().mockReturnValue(true);
+    (globalThis.MediaRecorder as any).isTypeSupported = vi.fn().mockReturnValue(true);
 
     // DOM Mock
     const mockCanvas = document.createElement('canvas');
@@ -71,10 +71,9 @@ describe('useVideoRecorder', () => {
     const { result } = renderHook(() => useVideoRecorder('zoom-canvas'));
     const onProgress = vi.fn();
     
-    let promise: Promise<void>;
     act(() => {
       // 1秒(1000ms)で1枚進む設定
-      promise = result.current.recordAutoZoom(1, onProgress, 1000);
+      void result.current.recordAutoZoom(1, onProgress, 1000);
     });
 
     // 初期化と最初のアニメーションフレームを待つ
@@ -102,7 +101,7 @@ describe('useVideoRecorder', () => {
 
   it('サポートされているMIMEタイプの中からMP4を優先的に選択すること', () => {
     const requestedTypes: string[] = [];
-    (global.MediaRecorder as any).isTypeSupported.mockImplementation((type: string) => {
+    (globalThis.MediaRecorder as any).isTypeSupported.mockImplementation((type: string) => {
       requestedTypes.push(type);
       // 全てサポートしていると仮定した場合、最初に呼ばれたものを返す
       return true;
@@ -117,13 +116,13 @@ describe('useVideoRecorder', () => {
     // 最初に video/mp4;codecs=h264 が試行されること
     expect(requestedTypes[0]).toBe('video/mp4;codecs=h264');
     // MediaRecorderが最初のタイプで作成されること
-    expect(global.MediaRecorder).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+    expect(globalThis.MediaRecorder).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       mimeType: 'video/mp4;codecs=h264'
     }));
   });
 
   it('MP4がサポートされていない場合にWebMにフォールバックすること', () => {
-    (global.MediaRecorder as any).isTypeSupported.mockImplementation((type: string) => {
+    (globalThis.MediaRecorder as any).isTypeSupported.mockImplementation((type: string) => {
       return type.includes('video/webm');
     });
 
@@ -134,7 +133,7 @@ describe('useVideoRecorder', () => {
     });
 
     // WebMのいずれかが選択されること
-    const callMimeType = (global.MediaRecorder as any).mock.calls[0][1].mimeType;
+    const callMimeType = (globalThis.MediaRecorder as any).mock.calls[0][1].mimeType;
     expect(callMimeType).toContain('video/webm');
   });
 });
