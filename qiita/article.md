@@ -10,6 +10,9 @@
 
 完成したアプリでは、成長記録の写真が次々と吸い込まれていくような不思議なズーム動画を生成し、MP4形式で書き出すことができます。
 
+- **デモサイト**: [http://www.totetero.com/ai_zoom/](http://www.totetero.com/ai_zoom/)
+- **GitHubリポジトリ**: [https://github.com/totetero/ai_zoom](https://github.com/totetero/ai_zoom)
+
 ただし、本記事の主旨は「アプリの作り方」ではありません。
 開発を通して得られた**「AIを使った新しい開発体験」**と、エージェントを活用した**「Gitワークフローの完全自動化」**に焦点を当ててご紹介します。
 
